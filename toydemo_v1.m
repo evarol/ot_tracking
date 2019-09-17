@@ -27,11 +27,6 @@ end
 
 V=reshape(data,[dim dim T]);
 
-[dual,val]=data2dual(data);
-D=reshape(dual,[dim dim T]);
-
-% figure(1)
-% imshow3d(cat(2,V./max(V(:)),permute(D,[2 1 3])));
 
 for t=1:size(V,3)
     tmp(:,:,t)=imresize(V(:,:,t),0.35);
