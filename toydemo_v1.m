@@ -2,22 +2,20 @@ clear
 clc
 close all
 
-addpath ../worm/TSMP/
-addpath ../../matlab_toolboxes/ARDPNMFdemo/
+
+
 vec=@(x)(x(:));
-dim = 100;
-T=20;
-k=5;
-noise=10;
-radius=10;
+
+%%fake data generation
+dim = 100; %square image size
+T=20; %time points
+noise=10; %noise level
+radius=10; %ball size
+
 [X,Y]=meshgrid((1:dim),(1:dim));
-
 coor = [X(:) Y(:)];
-
 data = noise*rand(size(coor,1),T);
 for t=1:T
-    %     data(sqrt(sum((coor-7 - t/10) .^2,2))<=radius,t)=2 + noise*rand(size(data(sqrt(sum((coor-7 - t/10).^2,2))<=radius,t)));
-    %     data(sqrt(sum((coor-13 - 4*(t)/10).^2,2))<=radius,t)=1 + noise*rand(size(data(sqrt(sum((coor-13 - 4*(t)/10).^2,2))<=radius,t)));
     data(sqrt(sum((coor - [20 10+t/1]).^2,2))<=radius,t)=8+noise*rand(size(data(sqrt(sum((coor - [20 10+t/1]).^2,2))<=radius,t)));
     data(sqrt(sum((coor - [40 10+t/0.6]).^2,2))<=radius,t)=8+noise*rand(size(data(sqrt(sum((coor - [40 10+t/0.6]).^2,2))<=radius,t)));
     data(sqrt(sum((coor - [60 10+t/0.35]).^2,2))<=radius,t)=8+noise*rand(size(data(sqrt(sum((coor - [60 10+t/0.35]).^2,2))<=radius,t)));
@@ -25,45 +23,45 @@ for t=1:T
 end
 
 
-V=reshape(data,[dim dim T]);
+V=reshape(data,[dim dim T]); %data reshape to matrix
 
 
 for t=1:size(V,3)
-    tmp(:,:,t)=imresize(V(:,:,t),0.35);
+    tmp(:,:,t)=imresize(V(:,:,t),0.35); %downsample image for OT computation
 end
+
+
+%% Duplicate and paste video
 V=tmp; clear tmp
 nsink=100;
 for t=1:size(V,3)
     V(:,:,T+t)=V(:,:,T-t+1);
 end
-
-
 sequential=0;
 
-% trackpoint = [4 7;4 21;4 29];
 
+%% choose point(s) to track
+% trackpoint = [4 7;4 21;4 29];
 [x,y]=meshgrid(1:5:35,1:5:35);
 trackpoint=[x(:) y(:)];
+
+
+%% Optimal transport from frame to frame -ENCODING STEP
 for t=1:size(V,3)-1
-    if sequential~=1
-    [H{t},Yhat{t}]=optimal_transport(V(:,:,1),V(:,:,t+1),0.05,100);
-    elseif sequential==1
+    if sequential~=1 %OT from frame 1 to all frames
+    [H{t},Yhat{t}]=optimal_transport(V(:,:,1),V(:,:,t+1),0.05,100); %% OT parameters
+    elseif sequential==1 %OT from frame t to t+1
         [H{t},Yhat{t}]=optimal_transport(V(:,:,t),V(:,:,t+1),0.05,100);
     end
-%     for s=1:nsink
-%         H{t}=H{t}./sum(H{t},2);
-%         H{t}=H{t}./sum(H{t},1);
-%     end
+    
+    
 H{t}=H{t}/sum(vec(H{t}));
-% H{t}=H{t}./sqrt(sum(H{t}.^2,2));
-%     H{t}=munkres(H{t});
-% [I,J]=max(H{t},[],2);
-
-    % hungarian on H maybe?
     ['Encoding ' num2str(t) '/' num2str(T)]
 end
 
 Vhat(:,:,1)=V(:,:,1)./sum(vec(V(:,:,1)));
+
+%% Optimal transport -DECODING STEP
 if sequential==1
 for t=1:length(Yhat)
     a=vec(Yhat{t});a=a./sum(a);
@@ -83,6 +81,10 @@ elseif sequential~=1
     end
 end
 
+
+
+
+%% Visualization
 Zhat=zeros([size(V) size(trackpoint,1)]);
 That=zeros([size(V) size(trackpoint,1)]);
 for T=1:size(trackpoint,1)
