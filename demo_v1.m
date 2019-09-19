@@ -1,4 +1,4 @@
-% load /Users/erdem/Dropbox/Projects/worm/gcamp_traces/animal_018_tail/run_tail_407.mat
+ % load /Users/erdem/Dropbox/Projects/worm/gcamp_traces/animal_018_tail/run_tail_407.mat
 % 
 % X=reshape(data,[size(data,1)*size(data,2) size(data,3)]);
 clearvars -except green
@@ -6,7 +6,8 @@ close all
 clc
 vec=@(x)(x(:));
 if ~exist('green')
-load('/Users/erdem/Dropbox/Projects/worm/hillman_video.mat','green');
+%load('/Users/erdem/Dropbox/Projects/worm/hillman_video.mat','green');
+load('/Users/cmcgrory/paninski_lab/worm/data/hillman_video.mat');
 green = permute(green,[2 1 3 4]);
 end
 
@@ -25,7 +26,7 @@ nsink=100;
 % for t=1:size(V,3)
 %     V(:,:,T+t)=V(:,:,T-t+1);
 % end
-sequential=1;
+sequential=0;
 
 [x,y]=meshgrid(1:5:28,1:5:159);
 trackpoint=[x(:) y(:)];
