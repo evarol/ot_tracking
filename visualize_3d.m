@@ -1,68 +1,19 @@
-%%% Color visualization of optimal transport tracking
-
-clearvars -except red;
-close all; clc;
-
-%% Parameters
-
-% Subsampling factor
-SCL_SUBSMP = 0.10;
-
-% Threshold for images
-IMG_THRESHOLD = 1.4;
-
-% Time point to start at
-T_TRACK = 50;
-
-% Entropic regularization parameter
-LAMBDA = 0.50;
-
-% Maximum displacement allowed for transport
-MAX_DISP = 10;
-
-
-%% Load data
-
-% Load RFP ('red') signal from Hillman data
-if ~exist('red', 'var')
-    load('/Users/cmcgrory/paninski_lab/worm/data/hillman_video.mat');
-    red = permute(red, [2 1 3 4]);
-end
-
-%% Preprocessing
-
-% Spatially subsample 'red' signal
-nx = ceil(SCL_SUBSMP * size(red, 1));
-ny = ceil(SCL_SUBSMP * size(red, 2));
-nz = ceil(SCL_SUBSMP * size(red, 3));
-nt = size(red, 4);
-V = zeros(nx, ny, nz, nt);
-for t = 1:nt
-    V(:, :, :, t) = imresize3(red(:, :, :, t), SCL_SUBSMP);
-end
-
-% Threshold signal
-V(V < IMG_THRESHOLD) = 0;
-
-
-%% Run OT
-
-frame_1 = V(:, :, :, T_TRACK);
-frame_2 = V(:, :, :, T_TRACK + 1);
-
-% Run optimal transport on two successive frames
-[P, ~] = optimal_transport(frame_1, frame_2, LAMBDA, MAX_DISP);
-
-
-%% Plot first frame
-
-% Initialize plots
-ax1 = subplot(311);
-ax2 = subplot(312);
-ax3 = subplot(313);
+function visualize_3d(frame_1, frame_2, P)
 
 % Parameter to trade off between distribution and background
 alpha = 0.5;
+
+% Validate input
+assert(all(size(frame_1) == size(frame_2)));
+[nx, ny, nz] = size(frame_1);
+n_pixels = nx * ny * nz;
+assert(all(size(P) == [n_pixels, n_pixels]));
+
+% Initialize plots
+figure();
+ax1 = subplot(311);
+ax2 = subplot(312);
+ax3 = subplot(313);
 
 % Compute max projections for both frames
 [mp_1, zmax_1] = max(frame_1, [], 3);
@@ -78,12 +29,10 @@ img1_rgb = alpha * (repmat(mp_1, [1, 1, 3]) - img_min) ./ (img_max - img_min);
 % Plot first frame
 subplot(ax1);
 imshow(img1_rgb, 'InitialMagnification', 'fit');
-title(sprintf('frame: %d', T_TRACK));
+title('frame 1');
 
 
-%% Get point from user and plot pushforward
-
-% TODO: Make this endless loop
+% Get point from user and plot pushforward
 while (1 == 1)
 
     % Get XY coordinates of point (order getpts() returns is reversed)
@@ -107,7 +56,7 @@ while (1 == 1)
     % (re)-plot first frame
     subplot(ax1);
     imshow(img1_rgb_mk, 'InitialMagnification', 'fit');
-    title(sprintf('frame: %d', T_TRACK));
+    title('frame 1');
 
     % Get pushforward distribution of selected pixel
     pt_idx = sub2ind([nx, ny, nz], pt_x, pt_y, pt_z);
@@ -137,7 +86,7 @@ while (1 == 1)
     % Plot second frame with distribution
     subplot(ax2);
     imshow(img2_rgb, 'InitialMagnification', 'fit');
-    title(sprintf('frame: %d', T_TRACK + 1));
+    title('frame 2');
     
     % Create RGB image with distribution alone
     img3_rgb = zeros(size(dist_scl, 1), size(dist_scl, 2), 3);
