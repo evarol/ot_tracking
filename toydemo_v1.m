@@ -59,7 +59,7 @@ H{t}=H{t}/sum(vec(H{t}));
     ['Encoding ' num2str(t) '/' num2str(T)]
 end
 
-Vhat(:,:,1)=V(:,:,1)./sum(vec(V(:,:,1)));
+Vhat(:,:,1)=V(:,:,1)./sum(vec(V(:,:,1))); %% The push-backward map
 
 %% Optimal transport -DECODING STEP
 if sequential==1
@@ -85,8 +85,8 @@ end
 
 
 %% Visualization
-Zhat=zeros([size(V) size(trackpoint,1)]);
-That=zeros([size(V) size(trackpoint,1)]);
+Zhat=zeros([size(V) size(trackpoint,1)]); %%The pushforward map
+That=zeros([size(V) size(trackpoint,1)]); %%The maxima of the pushforward map
 for T=1:size(trackpoint,1)
 Zhat(trackpoint(T,1),trackpoint(T,2),end,T)=1;
 That(trackpoint(T,1),trackpoint(T,2),end,T)=1;
