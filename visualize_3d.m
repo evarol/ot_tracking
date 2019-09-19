@@ -6,7 +6,7 @@ close all; clc;
 %% Parameters
 
 % Subsampling factor
-SCL_SUBSMP = 0.15;
+SCL_SUBSMP = 0.10;
 
 % Threshold for images
 IMG_THRESHOLD = 1.4;
