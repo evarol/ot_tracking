@@ -6,16 +6,16 @@ close all; clc;
 %% Parameters
 
 % Subsampling factor
-SCL_SUBSMP = 0.10;
+SCL_SUBSMP = 0.4;
 
 % Threshold for images
-IMG_THRESHOLD = 1.4;
+IMG_THRESHOLD = 10;
 
 % Time point to start at
 T_TRACK = 50;
 
 % Entropic regularization parameter
-LAMBDA = 0.50;
+LAMBDA = 1;
 
 % Maximum displacement allowed for transport
 MAX_DISP = 10;
@@ -51,7 +51,7 @@ frame_1 = V(:, :, :, T_TRACK);
 frame_2 = V(:, :, :, T_TRACK + 1);
 
 % Run optimal transport on two successive frames
-[P, ~] = optimal_transport(frame_1, frame_2, LAMBDA, MAX_DISP);
+[P, ~] = optimal_transport_sparse(frame_1, frame_2,IMG_THRESHOLD, LAMBDA, MAX_DISP);
 
 
 %% Plot first frame
@@ -112,7 +112,7 @@ while (1 == 1)
     % Get pushforward distribution of selected pixel
     pt_idx = sub2ind([nx, ny, nz], pt_x, pt_y, pt_z);
     dist_nn = P(:, pt_idx);
-    dist_vec = dist_nn ./ sum(dist_nn);
+    dist_vec = full(dist_nn ./ sum(dist_nn)); %%%%%!!!!!!!!
     
     % Create 2D max. projection of distribution
     dist_img = reshape(dist_vec, [nx, ny, nz]);
