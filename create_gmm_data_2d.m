@@ -13,13 +13,13 @@ IMG_XLIM = [1, 100];
 IMG_YLIM = [1, 50];
 
 % Number of samples
-T = 20;
+T = 50;
 
 % Sample rate (Hz)
-SMP_RATE = 4;
+SMP_RATE = 10;
 
 % Number of mixture components
-K = 10;
+K = 15;
 
 % Number of 'cycles' spanning worm
 N_CYCLES = 2;

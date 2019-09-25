@@ -12,7 +12,7 @@ close all; clc;
 T_TRACK = 7;
 
 % Entropic regularization parameter
-LAMBDA = 5.0;
+LAMBDA = 1.0;
 
 % Maximum displacement allowed for transport
 MAX_DISP = 20;
