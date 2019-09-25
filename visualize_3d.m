@@ -6,7 +6,7 @@ close all; clc;
 %% Parameters
 
 % Subsampling factor
-SCL_SUBSMP = 0.4;
+SCL_SUBSMP = 0.5;
 
 % Threshold for images
 IMG_THRESHOLD = 10;
@@ -15,7 +15,7 @@ IMG_THRESHOLD = 10;
 T_TRACK = 50;
 
 % Entropic regularization parameter
-LAMBDA = 1;
+LAMBDA = 0.5;
 
 % Maximum displacement allowed for transport
 MAX_DISP = 10;
