@@ -2,12 +2,7 @@
 % clc
 % close all
 
-load('/Users/cmcgrory/paninski_lab/worm/data/gmm_data_2d.mat');
-data = permute(data, [2, 1, 3]);
-
-%vidfile = VideoWriter('toy_tracks_bigjump_2.mp4','MPEG-4');
-
-vidfile = VideoWriter('sythetic_gmm_data.mp4','MPEG-4');
+vidfile = VideoWriter('toy_tracks_bigjump_2.mp4','MPEG-4');
 
 open(vidfile)
 M=data; %define M as the stack of images you want to make a movie out of
