@@ -65,7 +65,7 @@ while (1 == 1)
     % Get pushforward distribution of selected pixel
     pt_idx = sub2ind([nx, ny, nz], pt_x, pt_y, pt_z);
     dist_nn = P(pt_idx, :);
-    dist_vec = dist_nn ./ sum(dist_nn);
+    dist_vec = full(dist_nn ./ sum(dist_nn));
     
     % Create 2D max. projection of distribution
     dist_img = reshape(dist_vec, [nx, ny, nz]);
