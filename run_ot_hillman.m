@@ -56,4 +56,4 @@ frame_2 = V(:, :, :, T_TRACK + 1);
 
 %% Visualize
 
-visualize_3d(frame_1, frame_2, P);
+visualize_3d(frame_1, frame_2, P, 0.5);

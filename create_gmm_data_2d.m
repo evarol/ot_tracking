@@ -19,7 +19,7 @@ T = 20;
 SMP_RATE = 4;
 
 % Number of mixture components
-K = 15;
+K = 10;
 
 % Number of 'cycles' spanning worm
 N_CYCLES = 2;
@@ -34,7 +34,7 @@ AMP = 12.5;
 COV_SCL = 5.0;
 
 % Flag for whether or not to add noise
-ADD_NOISE = false;
+ADD_NOISE = true;
 
 % Noise level (stddev of Gaussian noise)
 NOISE_STD = 1e-4;
@@ -93,7 +93,14 @@ end
 
 if ADD_NOISE 
     for t = 1:T
+        
+        % Add Gaussian noise to image
         img_nn = data(:, :, t) + NOISE_STD * randn(IMG_SIZE);
+        
+        % Set all negative pixel values to zero (data must be non-negative)
+        img_nn(img_nn < 0) = 0;
+        
+        % Normalize image to make it valid distribution
         data(:, :, t) = img_nn ./ sum(img_nn(:));
     end
 end
