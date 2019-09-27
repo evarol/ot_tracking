@@ -1,7 +1,6 @@
 %%% Color visualization of optimal transport tracking on synthetic data
 
-clearvars -except red;
-close all; clc;
+clear all; close all; clc;
 
 %% Parameters
 

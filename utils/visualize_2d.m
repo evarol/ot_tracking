@@ -49,7 +49,7 @@ while (1 == 1)
     img1_rgb_mk = img1_rgb;
     img1_rgb_mk(pt_x, pt_y, 1) = 0;
     img1_rgb_mk(pt_x, pt_y, 2) = 1;
-    img1_rgb_mk(pt_x, pt_y, 1) = 0;
+    img1_rgb_mk(pt_x, pt_y, 3) = 0;
     
     % (re)-plot first frame
     subplot(ax1);
@@ -91,7 +91,7 @@ while (1 == 1)
     % Mark selected pixel in green
     img3_rgb(pt_x, pt_y, 1) = 0;
     img3_rgb(pt_x, pt_y, 2) = 1;
-    img3_rgb(pt_x, pt_y, 1) = 0;
+    img3_rgb(pt_x, pt_y, 3) = 0;
 
     % Plot distribution alone
     subplot(ax3);

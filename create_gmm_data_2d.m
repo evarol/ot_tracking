@@ -34,7 +34,7 @@ AMP = 12.5;
 COV_SCL = 5.0;
 
 % Flag for whether or not to add noise
-ADD_NOISE = true;
+ADD_NOISE = false;
 
 % Noise level (stddev of Gaussian noise)
 NOISE_STD = 1e-4;
