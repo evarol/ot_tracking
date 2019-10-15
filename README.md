@@ -1,2 +1,3 @@
-# ot_tracking
- tracking objects using optimal transport
+# `ot_tracking`
+
+Repository containing code for tracking objects using optimal transport (OT) framework.
