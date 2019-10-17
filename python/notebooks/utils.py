@@ -2,6 +2,9 @@
 
 import numpy as np
 import ot
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 
 def wasserstein_interp_2d(img_1, img_2, reg, alpha):
     """Compute Wasserstein interpolation between two images.
@@ -41,3 +44,22 @@ def wasserstein_interp_2d(img_1, img_2, reg, alpha):
     interp_vec = ot.bregman.barycenter(A, M, reg, weights)
     
     return interp_vec.reshape((nx, ny))
+
+
+def make_movie(frames, fig):
+    """Create animation from list of frames.
+    
+    Args:
+        frames (numpy.ndarray iterable): 2D frames for video
+        fig (matplotlib.Figure): Figure to use for animation
+        
+    Returns:
+        animation.ArtistAnimation: Object containing video
+    
+    """
+    
+    plt.figure(fig.number)
+    ims = [[plt.imshow(f, animated=True)] for f in frames]
+    
+    return animation.ArtistAnimation(
+        fig, ims, interval=150, blit=True, repeat_delay=1000)
