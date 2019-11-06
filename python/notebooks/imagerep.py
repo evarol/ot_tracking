@@ -40,7 +40,7 @@ def greedy_mp(img, flt, n_iter):
     assert(flt.shape[2] % 2 == 1)
     
     # Check that L2 norm of filter is one
-    assert(np.sum(flt ** 2) == 1)
+    assert(np.isclose(np.sum(flt ** 2), 1.0, atol=1e-5))
     
     # Radii of original filter
     rx = (flt.shape[0] - 1) // 2
@@ -70,6 +70,10 @@ def greedy_mp(img, flt, n_iter):
         # Add max point and corresponding weight to array
         points[i, :] = np.array(max_pt)
         weights[i] = pix_val
+        
+    # Not sure if we need this; just putting it in for now
+    for w in weights:
+        assert(w > 0)
         
     return points, weights, img_conv
 
