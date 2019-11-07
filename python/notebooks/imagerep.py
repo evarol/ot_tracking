@@ -13,6 +13,7 @@ from skimage.segmentation import random_walker
 # TODO: Replace 'assert' statements with tests that raise ValueErrors
 # TODO: Make sure indexing is correct and understandable
 
+
 def get_patch_image(patch, img_shape, ctr):
     
     rx = (patch.shape[0] - 1) // 2
@@ -30,7 +31,36 @@ def get_patch_image(patch, img_shape, ctr):
     full_expand[sl_x, sl_y, sl_z] = patch
     
     return full_expand[rx:-rx, ry:-ry, rz:-rz]
+
+
+def get_gaussian_filter(cov, rads):
+
+    # TODO: Add 'steps' parameters that allow us to control grid units
+
+    # Radii of filter for x, y and z dimensions
+    rx, ry, rz = rads
     
+    # Grid for evaluating Gaussian on
+    xg, yg, zg = np.mgrid[-rx:rx+1, -ry:ry+1, -rz:rz+1]
+    flt_grid = np.stack((xg, yg, zg), axis=-1)
+
+    # Gaussian filter (normalized to have unit L2 norm)
+    flt_nn = multivariate_normal.pdf(flt_grid, mean=np.array([0, 0, 0]), cov=cov)
+    flt = flt_nn / np.sqrt(np.sum(flt_nn ** 2))
+    
+    return flt
+   
+    
+def reconstruct_image(means, covs, weights, shape, tol=1e-5):
+    
+    img_recon = np.zeros(shape)
+    for k in range(len(means)):
+    
+        cell = weights[k] * get_gaussian_filter(covs[k], (15, 15, 5))
+        img_recon += get_patch_image(cell, shape, means[k])
+    
+    return img_recon
+
 
 def greedy_mp(img, flt, n_iter):
     
@@ -76,24 +106,6 @@ def greedy_mp(img, flt, n_iter):
         assert(w > 0)
         
     return points, weights, img_conv
-
-
-def get_gaussian_filter(cov, rads):
-
-    # TODO: Add 'steps' parameters that allow us to control grid units
-
-    # Radii of filter for x, y and z dimensions
-    rx, ry, rz = rads
-    
-    # Grid for evaluating Gaussian on
-    xg, yg, zg = np.mgrid[-rx:rx+1, -ry:ry+1, -rz:rz+1]
-    flt_grid = np.stack((xg, yg, zg), axis=-1)
-
-    # Gaussian filter (normalized to have unit L2 norm)
-    flt_nn = multivariate_normal.pdf(flt_grid, mean=np.array([0, 0, 0]), cov=cov)
-    flt = flt_nn / np.sqrt(np.sum(flt_nn ** 2))
-    
-    return flt
 
 
 def mp_gaussian(img, cov, n_iter):
