@@ -9,12 +9,26 @@ from skimage.measure import label
 from skimage.filters import threshold_otsu
 from skimage.segmentation import random_walker
 
-# TODO: Add docstring
+# TODO: Add docstrings
 # TODO: Replace 'assert' statements with tests that raise ValueErrors
-# TODO: Make sure indexing is correct and understandable
 
 
 def get_patch_image(patch, img_shape, ctr):
+    """Create 3D image that is zero everywhere except for region around point
+    
+    If center point is close to edge of image, parts of patch that fall outside
+    image boundaries will be discarded.
+    
+    Args:
+        patch (numpy.ndarray): 3D Image patch to place at center. All
+            dimensions must be odd.
+        img_shape (tuple): Shape of image to place patch in
+        ctr (numpy.ndarray): Coordinates in new image to place center of patch 
+        
+    Returns:
+        numpy.ndarray: Image with patch inserted
+    
+    """
     
     rx = (patch.shape[0] - 1) // 2
     ry = (patch.shape[1] - 1) // 2
@@ -33,9 +47,19 @@ def get_patch_image(patch, img_shape, ctr):
     return full_expand[rx:-rx, ry:-ry, rz:-rz]
 
 
+# TODO: Add 'steps' parameters that allow us to control grid units
 def get_gaussian_filter(cov, rads):
-
-    # TODO: Add 'steps' parameters that allow us to control grid units
+    """Create array representing Gaussian filter with unit Euclidean norm
+    
+    Args:
+        cov (numpy.ndarray): Covariance matrix
+        rads (tuple): Radii of filter. The dimensions of the filter array will 
+            be twice the radii plus one.
+            
+    Returns:
+        numpy.ndarrray: Array containing filter values
+    
+    """
 
     # Radii of filter for x, y and z dimensions
     rx, ry, rz = rads
@@ -51,7 +75,20 @@ def get_gaussian_filter(cov, rads):
     return flt
    
     
-def reconstruct_image(means, covs, weights, shape, tol=1e-5):
+# TODO: Try to speed this up by 'expanding' img_recon to avoid re-allocating
+# massive arrays full of zeros
+def reconstruct_image(means, covs, weights, shape):
+    """Reconstruct 3D image from weighted combination of Gaussian components
+    
+    Args:
+        means (list of numpy.ndarrays): Means of components
+        covs (list of numpy.ndarrays): Covariances of components
+        weights (list of floats): Weights for components
+        shape (tuple): Dimensions of image
+    
+    Returns:
+        numpy.ndarray: Image representing weighted combination of components
+    """
     
     img_recon = np.zeros(shape)
     for k in range(len(means)):
@@ -63,6 +100,19 @@ def reconstruct_image(means, covs, weights, shape, tol=1e-5):
 
 
 def greedy_mp(img, flt, n_iter):
+    """Run greedy matching-pursuit algorithm (Elad, 2014) on image
+    
+    Args:
+        img (numpy.ndarray): Image to extract components from
+        flt (numpy.ndarray): Filter for algorithm. Euclidean norm of filter
+            must be equal to one, and dimensions must be odd.
+        n_iter (int): Number of iterations to run algorithm for
+        
+    Returns:
+        list of numpy.ndarrays: Locations of components
+        list of floats: Weights for components
+        numpy.ndarray: Convolved residual (used for debugging)
+    """
     
     # Check that filter dimensions are odd
     assert(flt.shape[0] % 2 == 1)
@@ -109,6 +159,20 @@ def greedy_mp(img, flt, n_iter):
 
 
 def mp_gaussian(img, cov, n_iter):
+    """Run greedy MP algorithm (Elad, 2014) with Gaussian filter on image
+    
+    Args:
+        img (numpy.ndarray): Image to extract components from
+        cov (numpy.ndarray): Covariance of Gaussian filter
+        n_iter (int): Number of iterations
+        
+    Returns:
+        list of numpy.ndarrays: Locations of components
+        list of floats: Weights for components
+        dict: Debug information:
+            'fl' (numpy.ndarray): Gaussian filter used for algorithm
+            'img_conv' (numpy.ndarray): Convolved residual
+    """
     
     # Create Gaussian filter with given covariance
     fl = get_gaussian_filter(cov, (15, 15, 5))
@@ -124,7 +188,17 @@ def mp_gaussian(img, cov, n_iter):
     return pts, weights, debug
 
 
+# TODO: Clean up code; bring interface more in line with mp_gaussian() function
 def watershed_gaussian(img):
+    """Run watershed-based method for extracting Gaussian components from image
+   
+    Args:
+        img (numpy.ndarray): Image to extract components from
+    
+    Returns:
+        numpy.ndarray: Weights for components 
+        list of numpy.ndarrays: Component images
+    """
     
     # Compute threshold with Otsu's method
     threshold_abs = threshold_otsu(img)

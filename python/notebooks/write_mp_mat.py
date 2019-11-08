@@ -14,18 +14,17 @@ OUT_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/mat/test_vid.mat'
 
 # Start and stop times for extraction
 T_START = 500
-T_STOP = 502
+T_STOP = 550
 
 # Covariance values for each dimension
 COV_DIAG = [4.0, 4.0, 1.0]
 
 # Number of MP iterations to run
-N_ITER = 10
+N_ITER = 500
 
 
 def main():
 
-    # Extract MP components from all frames
     cov = np.diag(COV_DIAG)
     means = []
     weights = []
@@ -38,21 +37,24 @@ def main():
 
             print(f'Frame: {t}')
 
+            # Load frame
             img_raw = dset[t, 0, :, :, :]
             img_raw = np.moveaxis(img_raw, [0, 1, 2], [2, 1, 0])
             img = img_as_float(img_raw)
 
+            # Extract MP components from frame
             mus, wts, _ = mp_gaussian(img, cov, N_ITER)
             means.append(mus)
             weights.append(wts)
 
-    # Write to 
+    # Write means, weights, and covariance to MAT file
     mat_dict = {
         'means': np.array(means),
         'weights': np.array(weights),
         'cov': cov
     }
     savemat(OUT_FPATH, mat_dict)
+    
     
 if __name__ == '__main__':
     main()
