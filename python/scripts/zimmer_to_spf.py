@@ -7,11 +7,11 @@ from skimage.util import img_as_float, img_as_ubyte
 
 # Input and output paths
 IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/mCherry_v00065-01581.hdf5'
-OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/zimmer/tiff'
+OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/zimmer/sample_video/tiff'
 
 # Start and stop times for extraction
 T_START = 500
-T_STOP = 501
+T_STOP = 550
 
 
 def load_frame(dset, t):
@@ -32,7 +32,7 @@ def get_video_range(dset, t_start, t_stop):
     for t in range(t_start, t_stop):
 
         img = load_frame(dset, t)
-        min_vals.append(np.max(img))
+        min_vals.append(np.min(img))
         max_vals.append(np.max(img))
 
     return (min(min_vals), max(max_vals))
@@ -46,12 +46,12 @@ def convert_to_ubyte(img, vmin, vmax):
     return img_as_ubyte(img_scl)
     
 
-def write_frame(t, img_ubyte):
+def write_frame(k, img_ubyte):
     """Write frame to set of TIFF files"""
 
     for z in range(img_ubyte.shape[2]):
 
-        fpath = f'{OUT_DIR}/image_t{t:04d}_z{z:04d}.tif'
+        fpath = f'{OUT_DIR}/image_t{k:04d}_z{z:04d}.tif'
         tifffile.imwrite(fpath, img_ubyte[:, :, z])
 
         
@@ -63,15 +63,17 @@ def main():
         dset = f.get('mCherry')
 
         vmin, vmax = get_video_range(dset, T_START, T_STOP)
-        print(f'Min pixel value: {vid_min)')
-        print(f'Max pixel value: {vid_max)')
+        print(f'Min pixel value: {vmin}')
+        print(f'Max pixel value: {vmax}')
 
-        for t in range(T_START, T_STOP):
+        for k in range(T_STOP - T_START):
 
+            t = T_START + k
             print(f'Frame: {t}')
+            
             img = load_frame(dset, t)
             img_ubyte = convert_to_ubyte(img, vmin, vmax)
-            write_frame(t, img_ubyte)
+            write_frame(k, img_ubyte)
     
 
 if __name__ == '__main__':
