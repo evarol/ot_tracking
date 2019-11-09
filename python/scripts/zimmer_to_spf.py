@@ -51,7 +51,7 @@ def write_frame(k, img_ubyte):
 
     for z in range(img_ubyte.shape[2]):
 
-        fpath = f'{OUT_DIR}/image_t{k:04d}_z{z:04d}.tif'
+        fpath = f'{OUT_DIR}/image_t{k+1:04d}_z{z+1:04d}.tif'
         tifffile.imwrite(fpath, img_ubyte[:, :, z])
 
         
