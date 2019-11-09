@@ -14,49 +14,65 @@ T_START = 500
 T_STOP = 501
 
 
-def convert_to_ubyte(img):
-    
-    img_float = img_as_float(img)
-    
-    # Scale to full skimage float range to minimize loss during compression
-    img_max = np.max(img_float)
-    img_min = np.min(img_float)
-    img_scl = (img_float - img_min) / (img_max - img_min)
-    
+def load_frame(dset, t):
+    """Load single frame from dataset"""
+
+    img = dset[t, 0, :, :, :]
+    img = np.moveaxis(img, [0, 1, 2], [2, 1, 0])
+
+    return img_as_float(img)
+
+
+def get_video_range(dset, t_start, t_stop):
+    """Compute min and max pixel values across whole video"""
+
+    min_vals = []
+    max_vals = []
+
+    for t in range(t_start, t_stop):
+
+        img = load_frame(dset, t)
+        min_vals.append(np.max(img))
+        max_vals.append(np.max(img))
+
+    return (min(min_vals), max(max_vals))
+
+
+def convert_to_ubyte(img, vmin, vmax):
+    """Convert image from float to unsigned byte"""
+            
+    img_scl = (img - vmin) / (vmax - vmin)
+
     return img_as_ubyte(img_scl)
-
-
-def write_frame(img, t):
     
-    for z in range(img.shape[2]):
-        
+
+def write_frame(t, img_ubyte):
+    """Write frame to set of TIFF files"""
+
+    for z in range(img_ubyte.shape[2]):
+
         fpath = f'{OUT_DIR}/image_t{t:04d}_z{z:04d}.tif'
-        tifffile.imwrite(fpath, img[:, :, z])
+        tifffile.imwrite(fpath, img_ubyte[:, :, z])
 
         
 def main():
     
-    
     with h5py.File(IN_FPATH, 'r') as f:
 
+        print(f'Reading data from {IN_FPATH}...')
         dset = f.get('mCherry')
 
-        ## TODO: Get min and max of image here
-    
+        vmin, vmax = get_video_range(dset, T_START, T_STOP)
+        print(f'Min pixel value: {vid_min)')
+        print(f'Max pixel value: {vid_max)')
+
         for t in range(T_START, T_STOP):
 
             print(f'Frame: {t}')
-
-            # Load frame
-            img = dset[t, 0, :, :, :]
-            img = np.moveaxis(img, [0, 1, 2], [2, 1, 0])
-            
-            # Convert image to 8-bit
-            img_ubyte = convert_to_ubyte(img)
-           
-            # Write frame to TIFF files
-            write_frame(img_ubyte, t)
-            
+            img = load_frame(dset, t)
+            img_ubyte = convert_to_ubyte(img, vmin, vmax)
+            write_frame(t, img_ubyte)
     
+
 if __name__ == '__main__':
     main()
