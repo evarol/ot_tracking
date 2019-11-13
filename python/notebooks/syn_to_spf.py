@@ -1,4 +1,4 @@
-"""Convert segment of Zimmer data to format ingestible by SPF"""
+"""Convert synthetic data to format ingestible by SPF"""
 
 import numpy as np
 import tifffile
@@ -6,21 +6,14 @@ import h5py
 from skimage.util import img_as_float, img_as_ubyte
 
 # Input and output paths
-IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/mCherry_v00065-01581.hdf5'
-OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/zimmer/sample_video/tiff'
-
-# Start and stop times for extraction
-T_START = 500
-T_STOP = 550
+IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/synthetic/gmm_data_3d.h5'
+OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/synthetic/tiff'
 
 
 def load_frame(dset, t):
     """Load single frame from dataset"""
 
-    img = dset[t, 0, :, :, :]
-    img = np.moveaxis(img, [0, 1, 2], [2, 1, 0])
-
-    return img_as_float(img)
+    return img_as_float(dset[:, :, :, t])
 
 
 def get_video_range(dset, t_start, t_stop):
@@ -46,34 +39,34 @@ def convert_to_ubyte(img, vmin, vmax):
     return img_as_ubyte(img_scl)
     
 
-def write_frame(k, img_ubyte):
+def write_frame(t, img_ubyte):
     """Write frame to set of TIFF files"""
 
     for z in range(img_ubyte.shape[2]):
-
-        fpath = f'{OUT_DIR}/image_t{k+1:04d}_z{z+1:04d}.tif'
+        
+        fpath = f'{OUT_DIR}/image_t{t+1:04d}_z{z+1:04d}.tif'
         tifffile.imwrite(fpath, img_ubyte[:, :, z])
-
+        
         
 def main():
     
     with h5py.File(IN_FPATH, 'r') as f:
 
         print(f'Reading data from {IN_FPATH}...')
-        dset = f.get('mCherry')
+        dset = f.get('video')
+        n_frames = dset.shape[3]
 
-        vmin, vmax = get_video_range(dset, T_START, T_STOP)
+        vmin, vmax = get_video_range(dset, 0, n_frames)
         print(f'Min pixel value: {vmin}')
         print(f'Max pixel value: {vmax}')
 
-        for k in range(T_STOP - T_START):
+        for t in range(n_frames):
 
-            t = T_START + k
             print(f'Frame: {t}')
             
             img = load_frame(dset, t)
             img_ubyte = convert_to_ubyte(img, vmin, vmax)
-            write_frame(k, img_ubyte)
+            write_frame(t, img_ubyte)
     
 
 if __name__ == '__main__':
