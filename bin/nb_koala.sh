@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Script for running Jupyter Lab inside Docker container for dev environment
+# Script for running Jupyter Lab on Koala
 
-WORKDIR='~/Desktop/WormTracking/ot_tracking'
+WORKDIR='/home/mn2822/Desktop/WormOT/ot_tracking'
 CONDA_ENV='worm-ot'
 LOCAL_PORT="8888"
 REMOTE_PORT="9000"
