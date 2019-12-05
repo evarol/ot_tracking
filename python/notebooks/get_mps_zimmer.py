@@ -10,11 +10,11 @@ from imagerep import mp_gaussian
 
 # Input and output paths
 IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/mCherry_v00065-01581.hdf5'
-OUT_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/sample_video/mat/vid_0600_0650.mat'
+OUT_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/sample_video/mat/vid_0650_0700.mat'
 
 # Start and stop times for extraction
-T_START = 600
-T_STOP = 650
+T_START = 650
+T_STOP = 700
 
 # Covariance values for each dimension
 COV_DIAG = [4.0, 4.0, 1.0]

@@ -6,8 +6,8 @@ import h5py
 from skimage.util import img_as_float, img_as_ubyte
 
 # Input and output paths
-IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/synthetic/gmm_data_3d.h5'
-OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/synthetic/tiff'
+IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/synthetic/spf_test/gmm_data_3d.h5'
+OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/synthetic/spf_test/tiff'
 
 
 def load_frame(dset, t):
