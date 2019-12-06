@@ -1,6 +1,7 @@
 """Script for extracting GMMS from video, using parallelization"""
 
 import numpy as np
+import functools
 from multiprocessing import Pool
 from scipy.io import savemat
 
@@ -10,11 +11,11 @@ from imagerep import mp_gaussian
 
 # Input and output paths
 IN_FPATH = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/gmm_data_3d.h5'
-OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/syn_data_mp.mat'
+OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/syn_data_mp_test.mat'
 
 # Start and stop times for extraction
-T_START = 5
-T_STOP = 15
+T_START = 10
+T_STOP = 20
 
 # Number of processes to use
 N_PROCS = 1
@@ -26,7 +27,9 @@ COV_DIAG = [5.0, 5.0, 5.0]
 N_ITER = 10
 
 
-def get_gmms_mp(fpath, t_start, t_stop, cov, n_iter):
+def get_gmms_mp(rng, fpath, cov, n_iter):
+
+    t_start, t_stop = rng
 
     means = []
     weights = []
@@ -77,14 +80,18 @@ def main():
 
     with Pool(processes=N_PROCS) as p:
 
+        _get_gmms = functools.partial(
+            get_gmms_mp,
+            fpath=IN_FPATH,
+            cov=cov, 
+            n_iter=N_ITER
+        )
+
         # Split frames into chunks for each process
         chunks = get_chunks(T_START, T_STOP, N_PROCS)
 
         # Run MP algorithm on frames across chunks
-        results = p.map(
-            lambda c: get_gmms_mp(IN_FPATH, c[0], c[1], cov, N_ITER),
-            chunks
-        )
+        results = p.map(_get_gmms, chunks)
 
         # Extract means and weights of components from result data
         means = [x[0] for r in results for x in r]
