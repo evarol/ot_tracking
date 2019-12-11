@@ -49,19 +49,21 @@ def parse_args():
     parser.add_argument('--input', '-i', help='path to input file')
     parser.add_argument('--output', '-o', help='path to output file')
     parser.add_argument(
+        '--dtype', '-d', 
+        choices=['synthetic', 'zimmer', 'vivek'],
+        help='dataset type'
+    )
+    parser.add_argument(
         '--start', '-s', 
+        default=None,
         type=non_negative_int, 
         help='frame to start at'
     )
     parser.add_argument(
         '--end', '-e', 
+        default=None,
         type=non_negative_int, 
         help='frame to end at'
-    )
-    parser.add_argument(
-        '--dtype', '-d', 
-        choices=['synthetic', 'zimmer', 'vivek'],
-        help='dataset type'
     )
     parser.add_argument(
         '--procs', '-p', 
@@ -77,6 +79,54 @@ def parse_args():
     )
 
     return parser.parse_args()
+
+
+def get_reader(fpath, dtype):
+    """Get readers.WormDataReader object of specific datatype for given path.
+
+    Args:
+        fpath (str): Path to file containing data
+        dtype (str): Type of data in file (either 'synthetic', 'zimmer',
+            or 'vivek')
+
+    Returns:
+        readers.WormDataReader object for dataset
+
+    """
+
+    if dtype == 'synthetic':
+        return readers.SyntheticReader(fpath)
+    elif dtype == 'zimmer':
+        return readers.ZimmerReader(fpath)
+    elif dtype == 'vivek':
+        return readers.VivekReader(fpath)
+    else:
+        raise ValueError(f'Not valid dataset type: "dtype"')
+
+
+def get_limits(args):
+    """Determine start and stop frames from args.
+
+    Args:
+        args (argparse.Namespace): Argument namespace containing the following
+            fields:
+                input (str): Path to input file
+                dtype (str): Data type ('synthetic', 'zimmer', or 'vivek')
+                start (int or None): Start frame
+                end (int or None): Stop frame
+
+    Returns:
+        (t_start, t_stop): Start and stop frames (both ints)
+    
+    """
+
+    with get_reader(args.input, args.dtype) as reader:
+        num_frames = reader.num_frames
+
+    t_start = args.start if args.start is not None else 0
+    t_stop = args.end if args.end is not None else num_frames
+
+    return (t_start, t_stop)
 
 
 def get_chunks(t_start, t_stop, n_chunks):
@@ -112,29 +162,6 @@ def get_chunks(t_start, t_stop, n_chunks):
     chunks.append((t_start + (n_chunks - 1) * sz, t_stop))
 
     return chunks
-
-
-def get_reader(fpath, dtype):
-    """Get readers.WormDataReader object of specific datatype for given path.
-
-    Args:
-        fpath (str): Path to file containing data
-        dtype (str): Type of data in file (either 'synthetic', 'zimmer',
-            or 'vivek')
-
-    Returns:
-        readers.WormDataReader object for dataset
-
-    """
-
-    if dtype == 'synthetic':
-        return readers.SyntheticReader(fpath)
-    elif dtype == 'zimmer':
-        return readers.ZimmerReader(fpath)
-    elif dtype == 'vivek':
-        return readers.VivekReader(fpath)
-    else:
-        raise ValueError(f'Not valid dataset type: "dtype"')
 
 
 def get_gmms_mp(rng, fpath, dtype, cov, n_iter):
@@ -175,12 +202,13 @@ def get_gmms_mp(rng, fpath, dtype, cov, n_iter):
 def main():
 
     args = parse_args()
+    t_start, t_stop = get_limits(args)
 
     # Covariance matrix for GMM components
     cov = np.diag(COV_DIAG)
 
     # Split frames into chunks for each process
-    chunks = get_chunks(args.start, args.end, args.procs)
+    chunks = get_chunks(t_start, t_stop, args.procs)
 
     # Run MP algorithm on frames across chunks
     print('Launching processes to compute GMM components...')
