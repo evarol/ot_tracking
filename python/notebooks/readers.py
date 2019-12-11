@@ -5,6 +5,7 @@ from contextlib import AbstractContextManager
 
 import h5py
 import numpy as np
+from scipy.io import loadmat
 from skimage.util import img_as_float, img_as_ubyte
 
 
