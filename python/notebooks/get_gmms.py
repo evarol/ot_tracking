@@ -1,109 +1,209 @@
 """Script for extracting GMMS from video, using parallelization"""
 
-import numpy as np
+import argparse
 import functools
 from multiprocessing import Pool
+
+import numpy as np
 from scipy.io import savemat
 
-from readers import SyntheticReader
+import readers
 from imagerep import mp_gaussian
 
 
-# Input and output paths
-IN_FPATH = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/gmm_data_3d.h5'
-OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/syn_data_mp_test.mat'
+# Default number of processes used
+DEFAULT_NUM_PROCS = 12
 
-# Start and stop times for extraction
-T_START = 10
-T_STOP = 20
-
-# Number of processes to use
-N_PROCS = 1
+# Default number of iterations
+DEFAULT_NUM_ITER = 500
 
 # Covariance values for each dimension
 COV_DIAG = [5.0, 5.0, 5.0]
 
-# Number of MP iterations to run
-N_ITER = 10
+
+def positive_int(val_str):
+    """Parse positive integer from string."""
+
+    val_int = int(val_str)
+    if val_int > 0:
+        return val_int
+    else:
+        raise argparse.ArgumentTypeError(f'Invalid value: "{val_str}"')
 
 
-def get_gmms_mp(rng, fpath, cov, n_iter):
+def non_negative_int(val_str):
+    """Parse non-negative integer from string."""
 
-    t_start, t_stop = rng
-
-    means = []
-    weights = []
-
-    with SyntheticReader(fpath) as reader:
-        
-        for t in range(t_start, t_stop):
-
-            # Load frame
-            img = reader.get_frame(t)
-
-            # Extract MP components from frame
-            mus, wts, _ = mp_gaussian(img, cov, n_iter)
-            means.append(mus)
-            weights.append(wts)
-
-    return (means, weights)
+    val_int = int(val_str)
+    if val_int >= 0:
+        return val_int
+    else:
+        raise argparse.ArgumentTypeError(f'Invalid value: "{val_str}"')
 
 
-def get_chunks(t_start, t_stop, n_procs):
+def parse_args():
+    """Parse arguments from command-line."""
+
+    parser = argparse.ArgumentParser(description='Compute GMMs for dataset')
+
+    parser.add_argument('--input', '-i', help='path to input file')
+    parser.add_argument('--output', '-o', help='path to output file')
+    parser.add_argument(
+        '--start', '-s', 
+        type=non_negative_int, 
+        help='frame to start at'
+    )
+    parser.add_argument(
+        '--end', '-e', 
+        type=non_negative_int, 
+        help='frame to end at'
+    )
+    parser.add_argument(
+        '--dtype', '-d', 
+        choices=['synthetic', 'zimmer', 'vivek'],
+        help='dataset type'
+    )
+    parser.add_argument(
+        '--procs', '-p', 
+        default=DEFAULT_NUM_PROCS,
+        type=positive_int, 
+        help='number of processes'
+    )
+    parser.add_argument(
+        '--niter', '-n', 
+        default=DEFAULT_NUM_ITER,
+        type=positive_int, 
+        help='number of iterations'
+    )
+
+    return parser.parse_args()
+
+
+def get_chunks(t_start, t_stop, n_chunks):
+    """Group frame indices into given number of 'chunks'.
+
+    Args:
+        t_start (int): Frame index to start at (inclusive)
+        t_stop (int): Frame index to stop at (exclusive)
+        n_chunks (int): Number of chunks
+
+    Returns:
+        List of 2-tuples containing (start, stop) for each chunk.
+
+    """
+
+    # Validate input
+    if t_stop <= t_start:
+        raise ValueError('Start frame not before stop frame')
+    if n_chunks <= 0:
+        raise ValueError('Number of chunks not positive int')
+    if n_chunks > (t_stop - t_start):
+        raise ValueError('More chunks than frames')
 
     # Determine size of chunks
-    sz = (t_stop - t_start) // n_procs
+    sz = (t_stop - t_start) // n_chunks
 
     # First n-1 chunks
     chunks = []
-    for k in range(n_procs - 1):
+    for k in range(n_chunks - 1):
         chunks.append((t_start + k * sz, t_start + (k + 1) * sz))
 
     # Final chunk
-    chunks.append((t_start + (n_procs - 1) * sz, t_stop))
+    chunks.append((t_start + (n_chunks - 1) * sz, t_stop))
 
     return chunks
 
 
+def get_reader(fpath, dtype):
+    """Get readers.WormDataReader object of specific datatype for given path.
+
+    Args:
+        fpath (str): Path to file containing data
+        dtype (str): Type of data in file (either 'synthetic', 'zimmer',
+            or 'vivek')
+
+    Returns:
+        readers.WormDataReader object for dataset
+
+    """
+
+    if dtype == 'synthetic':
+        return readers.SyntheticReader(fpath)
+    elif dtype == 'zimmer':
+        return readers.ZimmerReader(fpath)
+    elif dtype == 'vivek':
+        return readers.VivekReader(fpath)
+    else:
+        raise ValueError(f'Not valid dataset type: "dtype"')
+
+
+def get_gmms_mp(rng, fpath, dtype, cov, n_iter):
+    """Run Gaussian MP algorithm on set of frames from data file.
+
+    This function is meant to be executed by a single worker process. It reads
+    its set of frames from the data file, runs the Greedy Matching Pursuit
+    algorithm (Elad, 2014) on each frame with the specified parameters, and
+    returns the results for each frame in a list.
+
+    Args:
+        rng (2-tuple): Range of frames to run MP on. The algorithm will be run
+            on all frames from rng[0] (inclusive) to rng[1] (exclusive).
+        fpath (str): Path to file containing dataset.
+        dtype (str): String indicating type of dataset. Either 'synthetic',
+            'zimmer', or 'vivek'.
+        cov (np.ndarray): Covariance matrix of Gaussian filter used in
+            algorithm.
+        n_iter (int): Number of iterations to run algorithm for.
+
+    Returns:
+        Ordered list of 2-tuples, one for each frame, where first element
+            contains means of components (n_iter * 3), and second contains
+            weights of components (n_iter * 1).
+
+    """
+
+    t_start, t_stop = rng
+
+    with get_reader(fpath, dtype) as reader:
+
+        frames = (reader.get_frame(t) for t in range(t_start, t_stop))
+        results = [mp_gaussian(f, cov, n_iter) for f in frames]
+
+    return results
+
+
 def main():
 
-    # Validate input
-    if T_STOP <= T_START:
-        raise ValueError('Start frame must be before stop frame')
-    if N_PROCS <= 0:
-        raise ValueError(f'{N_PROCS} is not a valid number of processes')
-    if N_PROCS > (T_STOP - T_START):
-        raise ValueError('More processes than frames')
+    args = parse_args()
 
-    # Covariance matrix
+    # Covariance matrix for GMM components
     cov = np.diag(COV_DIAG)
 
-    with Pool(processes=N_PROCS) as p:
+    # Split frames into chunks for each process
+    chunks = get_chunks(args.start, args.end, args.procs)
 
+    # Run MP algorithm on frames across chunks
+    print('Launching processes to compute GMM components...')
+    with Pool(processes=args.procs) as p:
         _get_gmms = functools.partial(
             get_gmms_mp,
-            fpath=IN_FPATH,
+            fpath=args.input,
+            dtype=args.dtype,
             cov=cov, 
-            n_iter=N_ITER
+            n_iter=args.niter
         )
-
-        # Split frames into chunks for each process
-        chunks = get_chunks(T_START, T_STOP, N_PROCS)
-
-        # Run MP algorithm on frames across chunks
         results = p.map(_get_gmms, chunks)
 
-        # Extract means and weights of components from result data
-        means = [x[0] for r in results for x in r]
-        weights = [x[1] for r in results for x in r]
-
     # Write means, weights, and covariance to MAT file
+    print(f'Complete. Writing results to {args.output}...')
+    means = np.array([x[0] for r in results for x in r])
+    weights = np.array([x[1] for r in results for x in r])
     mat_dict = {
-        'means': np.array(means),
-        'weights': np.array(weights),
+        'means': means,
+        'weights': weights,
         'cov': cov
     }
-    savemat(OUT_FPATH, mat_dict)
+    savemat(args.output, mat_dict)
 
 
 if __name__ == '__main__':
