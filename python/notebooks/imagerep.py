@@ -153,7 +153,7 @@ def greedy_mp(img, flt, n_iter):
         
     # Not sure if we need this; just putting it in for now
     for w in weights:
-        assert(w > 0)
+        assert(w >= 0)
         
     return points, weights, img_conv
 
