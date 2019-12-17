@@ -1,9 +1,12 @@
 """Classes for reading data from different formats"""
 
+import re
 from abc import abstractmethod
 from contextlib import AbstractContextManager
+from operator import itemgetter
 
 import h5py
+import tifffile
 import numpy as np
 from scipy.io import loadmat
 from skimage.util import img_as_float, img_as_ubyte
@@ -107,6 +110,53 @@ class VivekReader(WormDataReader):
         return self._num_frames
    
     def get_frame(self, time):
+
+        frame_raw = self._dset[time, :, :, :]
+        frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
+
+        return img_as_float(frame_flip)
+    
+    
+class HillmanReader(WormDataReader):
+    """Reader for Hillman lab data"""
+    
+    def __init__(self, dirpath):
+        
+        idx_fpath = [(self._get_idx(p), p) for p in self._gen_fpaths(dirpath)]
+        
+        #fpath_idx = [(p, int(p[-9:-4])) for p in all_files if pattern.match(p)]
+        #fpath_idx.sort(key=itemgetter(1))
+        
+        #fpaths = [x[0] for x in fpath_idx]
+        #times = [x[1] for x in fpath_idx]
+        
+        #t_start = min(indices)
+        
+        
+        self._num_frames = 0
+        
+    @staticmethod
+    def _gen_fpaths(dirpath):
+        
+        pattern = re.compile('_t\d\d\d\d\d.tif')
+        
+        for entry in os.scandir(dirpath):
+            if entry.is_file() and pattern.match(entry.path):
+                yield entry.path
+                      
+    @staticmethod         
+    def _get_idx(fpath):
+        
+        return fpath[-9:-4]
+    
+    @property
+    def num_frames(self):
+        
+        return self._num_frames
+   
+    def get_frame(self, time):
+        
+        fname = f'
 
         frame_raw = self._dset[time, :, :, :]
         frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
