@@ -21,6 +21,20 @@ class WormDataReader(AbstractContextManager):
 
     @property
     @abstractmethod
+    def t_start(self):
+        """Time value where video begins; inclusive (int)"""
+
+        pass
+
+    @property
+    @abstractmethod
+    def t_stop(self):
+        """Time value where video ends; exclusive (int)"""
+
+        pass
+
+    @property
+    @abstractmethod
     def num_frames(self):
         """Number of frames in video (int)"""
 
@@ -46,22 +60,27 @@ class SyntheticReader(WormDataReader):
     """Reader for synthetic data"""
     
     def __init__(self, fpath):
-        
+
         self._file = h5py.File(fpath, 'r')
         self._dset = self._file.get('video')
         self._num_frames = self._dset.shape[3]
     
     def __exit__(self, exc_type, exc_value, traceback):
-        
         self._file.close()
 
     @property
+    def t_start(self):
+        return 0
+
+    @property
+    def t_stop(self):
+        return self._num_frames
+
+    @property
     def num_frames(self):
-        
         return self._num_frames
    
     def get_frame(self, time):
-
         return img_as_float(self._dset[:, :, :, time])
 
 
@@ -75,12 +94,18 @@ class ZimmerReader(WormDataReader):
         self._num_frames = self._dset.shape[0]
     
     def __exit__(self, exc_type, exc_value, traceback):
-        
         self._file.close()
 
     @property
+    def t_start(self):
+        return 0
+
+    @property
+    def t_stop(self):
+        return self._num_frames
+
+    @property
     def num_frames(self):
-        
         return self._num_frames
    
     def get_frame(self, time):
@@ -101,12 +126,18 @@ class VivekReader(WormDataReader):
         self._num_frames = self._dset.shape[0]
     
     def __exit__(self, exc_type, exc_value, traceback):
-        
         self._file.close()
 
     @property
+    def t_start(self):
+        return 0
+
+    @property
+    def t_stop(self):
+        return self._num_frames
+
+    @property
     def num_frames(self):
-        
         return self._num_frames
    
     def get_frame(self, time):
@@ -121,44 +152,48 @@ class HillmanReader(WormDataReader):
     """Reader for Hillman lab data"""
     
     def __init__(self, dirpath):
-        
-        idx_fpath = [(self._get_idx(p), p) for p in self._gen_fpaths(dirpath)]
-        
-        #fpath_idx = [(p, int(p[-9:-4])) for p in all_files if pattern.match(p)]
-        #fpath_idx.sort(key=itemgetter(1))
-        
-        #fpaths = [x[0] for x in fpath_idx]
-        #times = [x[1] for x in fpath_idx]
-        
-        #t_start = min(indices)
-        
-        
-        self._num_frames = 0
-        
-    @staticmethod
-    def _gen_fpaths(dirpath):
-        
+
+        # Get list of all TIFF files in directory
         pattern = re.compile('_t\d\d\d\d\d.tif')
+        fpaths = (
+            e.path for e in os.scandir(dirpath) 
+            if e.is_file() and pattern.match(e.path))
         
-        for entry in os.scandir(dirpath):
-            if entry.is_file() and pattern.match(entry.path):
-                yield entry.path
-                      
-    @staticmethod         
-    def _get_idx(fpath):
-        
-        return fpath[-9:-4]
+        # Extract time values for each file and sort by time
+        time_fpath = [(int(p[-9:-4]), p) for p in all_paths]
+        time_fpath_sorted = sorted(time_fpath, key=itemgetter(0))
+        times_sorted, fpaths_sorted = zip(*time_fpath_sorted)
+
+        # Check that directory contains continuous time series
+        t_start = times_sorted[0]
+        t_stop = times_sorted[-1] + 1
+        if times_sorted != [range(t_start, t_stop)]:
+            raise ValueError('Directory is missing frames')
+    
+        self._fpaths = fpaths_sorted
+        self._t_start = t_start
+        self._t_stop = t_stop
+        self._num_frames = t_start - t_stop
+
+    @property
+    def t_start(self):
+        return self._t_start
+
+    @property
+    def t_stop(self):
+        return self._t_stop
     
     @property
     def num_frames(self):
-        
         return self._num_frames
    
     def get_frame(self, time):
         
-        fname = f'
+        if time not in range(self._t_start, self._t_stop):
+            raise ValueError('Invalid time value')
 
-        frame_raw = self._dset[time, :, :, :]
+        fpath = self._fpaths[time - self._t_start]
+        frame_raw = tifffile.imread(fpath)
         frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
 
         return img_as_float(frame_flip)
