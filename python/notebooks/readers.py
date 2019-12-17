@@ -1,5 +1,6 @@
 """Classes for reading data from different formats"""
 
+import os
 import re
 from abc import abstractmethod
 from contextlib import AbstractContextManager
@@ -15,7 +16,8 @@ from skimage.util import img_as_float, img_as_ubyte
 class WormDataReader(AbstractContextManager):
     """Abstract base class for classes that read worm data.
     
-    This class inherits from AbstractContextManager, which 
+    This class inherits from AbstractContextManager, which allows
+    WormDataReader subclasses to be used as context managers.
     
     """
 
@@ -154,26 +156,35 @@ class HillmanReader(WormDataReader):
     def __init__(self, dirpath):
 
         # Get list of all TIFF files in directory
-        pattern = re.compile('_t\d\d\d\d\d.tif')
-        fpaths = (
+        pattern = re.compile(r'_t\d{5}\.tif')
+        fpaths = [
             e.path for e in os.scandir(dirpath) 
-            if e.is_file() and pattern.match(e.path))
+            if e.is_file() and pattern.search(e.path)]
+        
+        if not fpaths:
+            raise ValueError(f'Directory contains no frame files: {dirpath}')
         
         # Extract time values for each file and sort by time
-        time_fpath = [(int(p[-9:-4]), p) for p in all_paths]
+        time_fpath = [(int(p[-9:-4]), p) for p in fpaths]
         time_fpath_sorted = sorted(time_fpath, key=itemgetter(0))
         times_sorted, fpaths_sorted = zip(*time_fpath_sorted)
 
         # Check that directory contains continuous time series
         t_start = times_sorted[0]
         t_stop = times_sorted[-1] + 1
-        if times_sorted != [range(t_start, t_stop)]:
-            raise ValueError('Directory is missing frames')
+        
+        # Make sure no frames are missing
+        missing_frames = set(range(t_start, t_stop)) - set(times_sorted) 
+        if missing_frames:
+            raise ValueError(f'Directory is missing frames: {missing_frames}')
     
         self._fpaths = fpaths_sorted
         self._t_start = t_start
         self._t_stop = t_stop
-        self._num_frames = t_start - t_stop
+        self._num_frames = t_stop - t_start
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        return None
 
     @property
     def t_start(self):
