@@ -6,6 +6,25 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
+def pixel_dist_2d(nx, ny):
+    """Compute pixel distance matrix for 2D image"""
+    
+    [xg, yg] = np.meshgrid(np.arange(nx), np.arange(ny))
+    grid_vals = np.hstack((xg.reshape(-1, 1), yg.reshape(-1, 1)))
+    
+    return ot.utils.dist(grid_vals)
+
+
+def pixel_dist_3d(nx, ny, nz):
+    """Compute pixel distance matrix for 3D image"""
+    
+    [xg, yg, zg] = np.meshgrid(np.arange(nx), np.arange(ny), np.arange(nz))
+    grid_vals = np.hstack(
+        (xg.reshape(-1, 1), yg.reshape(-1, 1), zg.reshape(-1, 1)))
+    
+    return ot.utils.dist(grid_vals)
+
+
 def wasserstein_interp_2d(img_1, img_2, reg, alpha):
     """Compute Wasserstein interpolation between two images.
     
@@ -30,10 +49,8 @@ def wasserstein_interp_2d(img_1, img_2, reg, alpha):
     assert(ny_1 == ny_2)
     nx, ny = (nx_1, ny_1)
     
-    # Compute distance matrix between all grid points
-    [xg, yg] = np.meshgrid(np.arange(nx), np.arange(ny))
-    grid_vals = np.hstack((xg.reshape(-1, 1), yg.reshape(-1, 1)))
-    M = ot.utils.dist(grid_vals)
+    # Compute pixel distance matrix 
+    M = pixel_dist_2d(nx, ny)
 
     # Normalize distance matrix -- this prevents conditioning issues
     M = M / np.median(M)
