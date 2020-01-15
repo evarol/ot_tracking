@@ -1,9 +1,7 @@
 """Modified versions of functions from Python Optimal Transport (pot) library"""
 
 import numpy as np
-#import warnings
 
-#from ot.utils import unif, dist
 from ot.bregman import geometricMean, geometricBar
 
 
