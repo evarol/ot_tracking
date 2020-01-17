@@ -66,6 +66,10 @@ class SyntheticReader(WormDataReader):
         self._file = h5py.File(fpath, 'r')
         self._dset = self._file.get('video')
         self._num_frames = self._dset.shape[3]
+        
+        self._means = self._file.get('means')[:, :]
+        self._cov = self._file.get('cov')[:, :]
+        self._weights = self._file.get('weights')[:, :]
     
     def __exit__(self, exc_type, exc_value, traceback):
         self._file.close()
@@ -77,6 +81,18 @@ class SyntheticReader(WormDataReader):
     @property
     def t_stop(self):
         return self._num_frames
+    
+    @property
+    def means(self):
+        return self._means
+    
+    @property
+    def cov(self):
+        return self._cov
+    
+    @property
+    def weights(self):
+        return self._weights
 
     @property
     def num_frames(self):
