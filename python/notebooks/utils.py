@@ -12,7 +12,7 @@ def pixel_dist_2d(nx, ny):
     [xg, yg] = np.meshgrid(np.arange(nx), np.arange(ny))
     grid_vals = np.hstack((xg.reshape(-1, 1), yg.reshape(-1, 1)))
     
-    return ot.utils.dist(grid_vals)
+    return ot.dist(grid_vals, metric='sqeuclidean')
 
 
 def pixel_dist_3d(nx, ny, nz):
@@ -22,7 +22,7 @@ def pixel_dist_3d(nx, ny, nz):
     grid_vals = np.hstack(
         (xg.reshape(-1, 1), yg.reshape(-1, 1), zg.reshape(-1, 1)))
     
-    return ot.utils.dist(grid_vals)
+    return ot.dist(grid_vals, metric='sqeuclidean')
 
 
 def wasserstein_interp_2d(img_1, img_2, reg, alpha):
