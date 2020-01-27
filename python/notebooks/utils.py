@@ -80,3 +80,18 @@ def make_movie(frames, fig):
     
     return animation.ArtistAnimation(
         fig, ims, interval=150, blit=True, repeat_delay=1000)
+
+
+def plot_maxproj(img, ax=None):
+    """Plot max-projection of 3D image.
+    
+    Args:
+        img (numpy.ndarray): Image to plot
+        ax (matplotlib.axes.Axes): Optional. Axes to plot on (default is to
+            use current axes).
+    """
+    
+    if ax is None:
+        return plt.imshow(np.max(img, 2).T, origin='lower')
+    else:
+        return ax.imshow(np.max(img, 2).T, origin='lower')
