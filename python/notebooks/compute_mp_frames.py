@@ -35,7 +35,7 @@ def main():
         grp_1.create_dataset('img_conv', data=dbg_1['img_conv'])
         
         grp_2 = f.create_group('frame_2')
-        grp_2.create_dataset('img', data=frame_1)
+        grp_2.create_dataset('img', data=frame_2)
         grp_2.create_dataset('pts', data=np.array(pts_2))
         grp_2.create_dataset('wts', data=np.array(wts_2))
         grp_2.create_dataset('fl', data=dbg_2['fl'])
