@@ -82,13 +82,18 @@ def reconstruct_image(means, covs, weights, shape):
     
     Args:
         means (list of numpy.ndarrays): Means of components
-        covs (list of numpy.ndarrays): Covariances of components
+        covs (list of numpy.ndarrays): Covariances of components. If list
+            contains only one element, then this is used as covariance for all
+            components.
         weights (list of floats): Weights for components
         shape (tuple): Dimensions of image
     
     Returns:
         numpy.ndarray: Image representing weighted combination of components
     """
+    
+    if len(covs) == 1:
+        covs = covs * len(means)
     
     img_recon = np.zeros(shape)
     for k in range(len(means)):
