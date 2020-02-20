@@ -1,4 +1,4 @@
-"""Script for extracting GMMS from video, using parallelization"""
+"""Script for running matching pursuit (MP) on video, using parallelization"""
 
 import argparse
 import functools
@@ -7,8 +7,8 @@ from multiprocessing import Pool
 import numpy as np
 from scipy.io import savemat
 
-import readers
-from imagerep import mp_gaussian
+from otimage import readers
+from otimage.imagerep import mp_gaussian
 
 
 # Default number of processes used
@@ -44,7 +44,7 @@ def non_negative_int(val_str):
 def parse_args():
     """Parse arguments from command-line."""
 
-    parser = argparse.ArgumentParser(description='Compute GMMs for dataset')
+    parser = argparse.ArgumentParser(description='Compute MPs for dataset')
 
     parser.add_argument('--input', '-i', help='path to input file')
     parser.add_argument('--output', '-o', help='path to output file')
@@ -164,7 +164,7 @@ def get_chunks(t_start, t_stop, n_chunks):
     return chunks
 
 
-def get_gmms_mp(rng, fpath, dtype, cov, n_iter):
+def get_mps(rng, fpath, dtype, cov, n_iter):
     """Run Gaussian MP algorithm on set of frames from data file.
 
     This function is meant to be executed by a single worker process. It reads
@@ -204,23 +204,23 @@ def main():
     args = parse_args()
     t_start, t_stop = get_limits(args)
 
-    # Covariance matrix for GMM components
+    # Covariance matrix for MP components
     cov = np.diag(COV_DIAG)
 
     # Split frames into chunks for each process
     chunks = get_chunks(t_start, t_stop, args.procs)
 
     # Run MP algorithm on frames across chunks
-    print('Launching processes to compute GMM components...')
+    print('Launching processes to compute MP components...')
     with Pool(processes=args.procs) as p:
-        _get_gmms = functools.partial(
-            get_gmms_mp,
+        _get_mps = functools.partial(
+            get_mps,
             fpath=args.input,
             dtype=args.dtype,
             cov=cov, 
             n_iter=args.niter
         )
-        results = p.map(_get_gmms, chunks)
+        results = p.map(_get_mps, chunks)
 
     # Write means, weights, and covariance to MAT file
     print(f'Complete. Writing results to {args.output}...')
