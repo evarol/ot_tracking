@@ -1,4 +1,4 @@
-"""Script for computing frame-to-frame transforms"""
+"""Script for computing linear frame-to-frame transforms"""
 
 import numpy as np
 from scipy.io import loadmat, savemat
@@ -6,8 +6,8 @@ from scipy.io import loadmat, savemat
 from otimage import imagereg
 
 
-MP_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/gmm_components/vid_0500_0550.mat'
-OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/mappings/map_0500_0550.mat'
+MP_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/mp_components/mp_0000_0050.mat'
+OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/registration/reg_0000_0050.mat'
 N_FRAMES = 50
 N_MPS = 100
 

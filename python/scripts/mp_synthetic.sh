@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python get_gmms.py \
+python compute_mps.py \
     -i /home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/gmm_data_3d.h5 \
     -o /home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/syn_data_mp_test.mat \
     -d 'synthetic' \

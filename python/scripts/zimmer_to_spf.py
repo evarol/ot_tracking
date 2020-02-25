@@ -6,12 +6,12 @@ import h5py
 from skimage.util import img_as_float, img_as_ubyte
 
 # Input and output paths
-IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/mCherry_v00065-01581.hdf5'
+IN_FPATH = '/home/mn2822/Desktop/WormTracking/data/zimmer/raw/mCherry_v00065-00115.hdf5'
 OUT_DIR = '/home/mn2822/Desktop/WormTracking/data/zimmer/sample_video/tiff'
 
 # Start and stop times for extraction
-T_START = 500
-T_STOP = 550
+T_START = 0
+T_STOP = 50
 
 
 def load_frame(dset, t):

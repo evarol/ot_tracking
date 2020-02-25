@@ -3,18 +3,17 @@
 import numpy as np
 import h5py
 
-import readers
-import imagerep
+from otimage import readers, imagerep
 
-IN_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/mCherry_v00065-01581.hdf5'
-OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/sample/frame_mp_0500_0502.h5'
+IN_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/raw/mCherry_v00065-00115.hdf5'
+OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/sample/frame_mp_0000_0002.h5'
 
 def main():
 
     with readers.ZimmerReader(IN_FPATH) as reader:
         
-        frame_1 = reader.get_frame(500)
-        frame_2 = reader.get_frame(501)
+        frame_1 = reader.get_frame(0)
+        frame_2 = reader.get_frame(1)
         
     n_iter = 200
     cov = np.diag([8.0, 8.0, 1.5])
