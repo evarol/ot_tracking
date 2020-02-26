@@ -30,17 +30,12 @@ def ot_reg_linear(pts_1, pts_2, wts_1, wts_2):
     
     """
     
-    # Matrix containing locations of both sets of MPs
-    pts = np.concatenate((pts_1, pts_2), axis=0)
-
-    # Put weights in common coordinate system and normalize them
-    p_1_nn = np.concatenate((wts_1, np.zeros(wts_2.shape[0])), axis=0)
-    p_2_nn = np.concatenate((np.zeros(wts_1.shape[0]), wts_2), axis=0)
-    p_1 = p_1_nn / np.sum(p_1_nn)
-    p_2 = p_2_nn / np.sum(p_2_nn)
+    # Normalize weights
+    p_1 = wts_1 / np.sum(wts_1)
+    p_2 = wts_2 / np.sum(wts_2)
 
     # Normalized distance matrix 
-    M_nn = ot.dist(pts, metric='sqeuclidean')
+    M_nn = ot.dist(pts_1, pts_2, metric='sqeuclidean')
     M = M_nn / np.median(M_nn)
 
     # Compute transport plan
@@ -48,8 +43,8 @@ def ot_reg_linear(pts_1, pts_2, wts_1, wts_2):
 
     # Get pairs of points with values above threshold, and corresponding weights from P matrix
     idx_1, idx_2 = np.nonzero(P)
-    x = pts[idx_1]
-    y = pts[idx_2]
+    x = pts_1[idx_1]
+    y = pts_2[idx_2]
     smp_wt = P[idx_1, idx_2]
 
     # Use sklearn.linear_model.LinearRegression to minimize cost function
