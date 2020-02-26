@@ -18,7 +18,12 @@ DEFAULT_NUM_PROCS = 12
 DEFAULT_NUM_ITER = 500
 
 # Covariance values for each dimension
-COV_DIAG = [5.0, 5.0, 5.0]
+
+# Zimmer
+#COV_DIAG = [5.0, 5.0, 5.0]
+
+# Vivek
+COV_DIAG = [3.0, 3.0, 1.0]
 
 
 def positive_int(val_str):

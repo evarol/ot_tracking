@@ -139,12 +139,12 @@ class VivekReader(WormDataReader):
     
     def __init__(self, fpath):
         
-        self._file = h5py.File(fpath, 'r')
-        self._dset = self._file.get('data')
-        self._num_frames = self._dset.shape[0]
+        file_vars = loadmat(fpath, variable_names=['data'])
+        self._data = file_vars['data']
+        self._num_frames = self._data.shape[3]
     
     def __exit__(self, exc_type, exc_value, traceback):
-        self._file.close()
+        return None
 
     @property
     def t_start(self):
@@ -159,11 +159,40 @@ class VivekReader(WormDataReader):
         return self._num_frames
    
     def get_frame(self, time):
-
-        frame_raw = self._dset[time, :, :, :]
-        frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
-
-        return img_as_float(frame_flip)
+        return img_as_float(self._data[:, :, :, time])
+    
+# Old Vivek reader
+#
+#class VivekReader(WormDataReader):
+#    """Reader for Vivek's data"""
+#    
+#    def __init__(self, fpath):
+#        
+#        self._file = h5py.File(fpath, 'r')
+#        self._dset = self._file.get('data')
+#        self._num_frames = self._dset.shape[0]
+#    
+#    def __exit__(self, exc_type, exc_value, traceback):
+#        self._file.close()
+#
+#    @property
+#    def t_start(self):
+#        return 0
+#
+#    @property
+#    def t_stop(self):
+#        return self._num_frames
+#
+#    @property
+#    def num_frames(self):
+#        return self._num_frames
+#   
+#    def get_frame(self, time):
+#
+#        frame_raw = self._dset[time, :, :, :]
+#        frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
+#
+#        return img_as_float(frame_flip)
     
     
 class HillmanReader(WormDataReader):

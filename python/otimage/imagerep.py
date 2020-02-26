@@ -92,6 +92,9 @@ def reconstruct_image(means, covs, weights, shape):
         numpy.ndarray: Image representing weighted combination of components
     """
     
+    if type(covs) is np.ndarray:
+        raise ValueError("Argument 'covs' must be iterable, not ndarray")
+    
     if len(covs) == 1:
         covs = covs * len(means)
     
