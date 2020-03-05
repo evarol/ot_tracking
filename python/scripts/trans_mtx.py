@@ -8,11 +8,11 @@ from otimage.imagereg import ot_reg_linear
 
 # Zimmer
 #MP_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/mp_components/mp_0000_0050.mat'
-OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/registration/reg2_0003_0008.mat'
+#OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/registration/reg2_0003_0008.mat'
 
 # Vivek
-#MP_FPATH = '/home/mn2822/Desktop/WormOT/data/vivek/1010_tail_03/mp_components/mp_0000_0900.mat'
-#OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/vivek/1010_tail_03/registration/reg2_0000_0900.mat'
+MP_FPATH = '/home/mn2822/Desktop/WormOT/data/vivek/1010_tail_03/mp_components/mp_0000_0900.mat'
+OUT_FPATH = '/home/mn2822/Desktop/WormOT/data/vivek/1010_tail_03/trans_mtx/p_0000_0900.mat'
 
 N_FRAMES = 5
 N_MPS = 100

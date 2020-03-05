@@ -54,7 +54,7 @@ def ot_reg_linear(pts_1, pts_2, wts_1, wts_2):
     # Estimates of transform parameters
     alpha = model.intercept_
     beta = model.coef_
-
+    
     log = {
         'ot': ot_log,
         'P': P,
