@@ -60,7 +60,7 @@ class PushforwardViewer:
     """Viewer widget for transport plans"""
     
     def __init__(self, pts_1, pts_2, wts_1, wts_2, 
-        cov, img_shape, p_mtx, figsize=(10, 10)):
+        cov, img_shape, q_mtx, figsize=(10, 10)):
         
         self.pts_1 = pts_1
         self.pts_2 = pts_2
@@ -71,10 +71,8 @@ class PushforwardViewer:
         self.rec_1 = imagerep.reconstruct_image(pts_1, [cov], wts_1, img_shape)
         self.rec_2 = imagerep.reconstruct_image(pts_2, [cov], wts_2, img_shape)
         
-        q_mtx = p_mtx / np.sum(p_mtx, 1)
         self.pf_means = q_mtx @ pts_2
         self.pf_modes = pts_2[np.argmax(q_mtx, 1)]
-        self.p_mtx = p_mtx
         self.q_mtx = q_mtx
         
         ipyw.interact(
