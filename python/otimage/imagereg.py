@@ -61,4 +61,3 @@ def ot_reg_linear(pts_1, pts_2, wts_1, wts_2):
     }
 
     return alpha, beta, log
-

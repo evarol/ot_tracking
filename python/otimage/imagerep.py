@@ -97,12 +97,29 @@ def reconstruct_image(means, covs, weights, shape):
     
     if len(covs) == 1:
         covs = covs * len(means)
-    
+        
     img_recon = np.zeros(shape)
     for k in range(len(means)):
     
         cell = weights[k] * get_gaussian_filter(covs[k], (15, 15, 5))
         img_recon += get_patch_image(cell, shape, means[k])
+    
+    return img_recon
+
+
+def reconstruct_image_2(pts, wts, cov, shape):
+    """Reconstruct 3D image from weighted combination of Gaussian components"""
+    
+    # Only plot points that fall inside image
+    plot_idx = np.all((pts >= 0) & (pts < shape), axis=1)
+    pts_plot = pts[plot_idx]
+    wts_plot = wts[plot_idx]
+    
+    img_recon = np.zeros(shape)
+    for k in range(pts_plot.shape[0]):
+    
+        cell = wts_plot[k] * get_gaussian_filter(cov, (15, 15, 5))
+        img_recon += get_patch_image(cell, shape, pts_plot[k, :])
     
     return img_recon
 
