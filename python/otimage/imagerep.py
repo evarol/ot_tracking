@@ -112,7 +112,7 @@ def reconstruct_image_2(pts, wts, cov, shape):
     
     # Only plot points that fall inside image
     plot_idx = np.all((pts >= 0) & (pts < shape), axis=1)
-    pts_plot = pts[plot_idx]
+    pts_plot = (pts[plot_idx]).astype('int')
     wts_plot = wts[plot_idx]
     
     img_recon = np.zeros(shape)
