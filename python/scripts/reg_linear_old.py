@@ -33,7 +33,7 @@ def main():
         pts_2 = pts[t + 1, 0:N_MPS, :]
         wts_2 = wts[t + 1, 0:N_MPS, 0]
 
-        alpha, beta, _ = imagereg.ot_reg_linear(pts_1, pts_2, wts_1, wts_2)
+        alpha, beta, _ = imagereg.ot_reg_linear_1(pts_1, pts_2, wts_1, wts_2)
 
         alphas.append(alpha)
         betas.append(beta)

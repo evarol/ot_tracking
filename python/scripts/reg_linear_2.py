@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.io import loadmat, savemat
 
-from otimage.imagereg import ot_reg_linear
+from otimage.imagereg import ot_reg_linear_1
 
 
 # Zimmer
@@ -51,7 +51,7 @@ def main():
         wts_t = wts[t, 0:N_MPS, 0]
 
         # Compute mapping from reconstruction of prev. frame to current frame
-        alpha, beta, _ = ot_reg_linear(rec_pts[t - 1], pts_t, wts_0, wts_t)
+        alpha, beta, _ = ot_reg_linear_1(rec_pts[t - 1], pts_t, wts_0, wts_t)
         
         # Compute mapping from first frame to current frame using recursive update
         f_alpha[t] = beta @ f_alpha[t - 1] + alpha

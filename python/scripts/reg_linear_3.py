@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.io import loadmat, savemat
 
-from otimage.imagereg import ot_reg_linear
+from otimage.imagereg import ot_reg_linear_1
 
 
 # Zimmer
@@ -50,7 +50,7 @@ def main():
         pts_t = pts[t, 0:N_MPS, :]
         wts_t = wts[t, 0:N_MPS, 0]
 
-        alpha, beta, log = ot_reg_linear(pts_0, pts_t, wts_unif, wts_unif)
+        alpha, beta, log = ot_reg_linear_1(pts_0, pts_t, wts_unif, wts_unif)
         
         f_alpha[t] = alpha
         f_beta[t] = beta

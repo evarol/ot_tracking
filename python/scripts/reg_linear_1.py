@@ -8,7 +8,7 @@ successive frames and then composing them.
 import numpy as np
 from scipy.io import loadmat, savemat
 
-from otimage.imagereg import ot_reg_linear
+from otimage.imagereg import ot_reg_linear_1
 
 
 MP_FPATH = '/home/mn2822/Desktop/WormOT/data/zimmer/mp_components/mp_0000_0050.mat'
@@ -53,7 +53,7 @@ def main():
         wts_2 = wts[t, 0:N_MPS, 0]
 
         # Compute mapping from reconstruction of prev. frame to current frame
-        alpha, beta, _ = ot_reg_linear(pts_1, pts_2, wts_1, wts_2)
+        alpha, beta, _ = ot_reg_linear_1(pts_1, pts_2, wts_1, wts_2)
         
         print('det(beta)')
         print(np.linalg.det(beta))
