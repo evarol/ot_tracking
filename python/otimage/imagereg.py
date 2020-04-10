@@ -76,7 +76,7 @@ def _compute_ot(pts_1, pts_2, wts_1, wts_2):
     return ot.emd(p_1, p_2, M, log=True)
     
 
-def _ot_reg(pts_1, pts_2, wts_1, wts_2, p_mtx):
+def _ot_reg_linear(pts_1, pts_2, wts_1, wts_2, p_mtx):
     """Compute weighted linear regression using OT plan"""
     
     # Get pairs of points with values above threshold, and corresponding weights from P matrix
@@ -113,7 +113,7 @@ def ot_reg_linear_2(pts_s, pts_t, wts_s, wts_t, n_iter):
         p_mtx[i], ot_log[i] = _compute_ot(pts[i], pts_t, wts_s, wts_t)
         
         # M-step: Compute new mapping using transport plan
-        alpha[i + 1], beta[i + 1] =  _ot_reg(pts_s, pts_t, wts_s, wts_t, p_mtx[i])
+        alpha[i + 1], beta[i + 1] =  _ot_reg_linear(pts_s, pts_t, wts_s, wts_t, p_mtx[i])
        
     debug = {
         'alpha': alpha,
@@ -124,3 +124,54 @@ def ot_reg_linear_2(pts_s, pts_t, wts_s, wts_t, n_iter):
     }
     
     return alpha[-1], beta[-1], debug
+
+
+def _ot_regression_poly(pts_1, pts_2, p_mtx, degree):
+    """Compute weighted polynomial regression using OT plan"""
+    
+    # Get pairs of points with nonzero values and corresponding weights from P matrix
+    idx_1, idx_2 = np.nonzero(p_mtx)
+    x = pts_1[idx_1]
+    y = pts_2[idx_2]
+    smp_wt = p_mtx[idx_1, idx_2]
+
+    # Use sklearn to minimize cost function
+    model = Pipeline([
+        ('poly', PolynomialFeatures(degree=degree)),
+        ('linear', LinearRegression(fit_intercept=True))
+    ])
+    model.fit(x, y, linear__sample_weight=smp_wt)
+   
+    return model
+
+
+def ot_reg_poly(pts_s, pts_t, wts_s, wts_t, n_iter, degree=3):
+    """EM-based OT registration method with polynomial model."""
+    
+    model = [None] * n_iter
+    p_mtx = [None] * n_iter
+    ot_log = [None] * n_iter
+    
+    pts = [pts_s] + [None] * n_iter
+    
+    for i in range(n_iter):
+        
+        # E-step: Compute OT between current points and target points
+        p_mtx[i], ot_log[i] = _compute_ot(pts[i], pts_t, wts_s, wts_t)
+        
+        # M-step: Compute new mapping using transport plan
+        model[i] =  _ot_regression_poly(pts_s, pts_t, p_mtx[i], degree)
+       
+        # Update points 
+        pts[i + 1] = model[i].predict(pts_s)
+       
+    debug = {
+        'model': model,
+        'pts': pts,
+        'p_mtx': p_mtx,
+        'ot_log': ot_log,
+    }
+    
+    return model[-1], debug
+
+
