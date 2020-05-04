@@ -59,8 +59,8 @@ def _transport_regression_poly(pts_1, pts_2, transport_mtx, degree):
 
     # Use sklearn to minimize cost function
     model = Pipeline([
-        ('poly', PolynomialFeatures(degree=degree)),
-        ('linear', LinearRegression(fit_intercept=True))
+        ('poly', PolynomialFeatures(degree=degree, include_bias=True)),
+        ('linear', LinearRegression(fit_intercept=False))
     ])
     model.fit(x, y, linear__sample_weight=smp_wt)
    
