@@ -97,3 +97,82 @@ def plot_maxproj(img, ax=None, animated=False):
         return plt.imshow(np.max(img, 2).T, origin='lower', animated=animated)
     else:
         return ax.imshow(np.max(img, 2).T, origin='lower', animated=animated)
+    
+    
+def _jac_quad(x, beta):
+    """Compute Jacobian matrix for quadratic transform."""
+    
+    x0 = x[0]
+    x1 = x[1]
+    x2 = x[2]
+    
+    d_phi = np.array([
+        [0,         0,         0        ],
+        [1,         0,         0        ],
+        [0,         1,         0        ], 
+        [0,         0,         1        ],
+        [2 * x0,    0,         0        ],
+        [x1,        x0,        0        ],
+        [x2,        0,         x0       ],
+        [0,         2 * x1,    0        ],
+        [0,         x2,        x1       ],
+        [0,         0,         2 * x2   ],
+    ])
+        
+    return beta @ d_phi
+
+
+def _jac_cubic(x, beta):
+    """Compute Jacobian matrix for cubic transform."""
+    
+    x0 = x[0]
+    x1 = x[1]
+    x2 = x[2]
+    
+    x0_2 = x0 ** 2
+    x1_2 = x1 ** 2
+    x2_2 = x2 ** 2
+    
+    x0_x1 = x0 * x1
+    x1_x2 = x1 * x2
+    x0_x2 = x0 * x2
+    
+    d_phi = np.array([
+        [0,         0,         0        ],
+        [1,         0,         0        ],
+        [0,         1,         0        ], 
+        [0,         0,         1        ],
+        [2 * x0,    0,         0        ],
+        [x1,        x0,        0        ],
+        [x2,        0,         x0       ],
+        [0,         2 * x1,    0        ],
+        [0,         x2,        x1       ],
+        [0,         0,         2 * x2   ],
+        [3 * x0_2,  0,         0        ],
+        [2 * x0_x1, x0_2,      0        ],
+        [2 * x0_x2, 0,         x0_2     ],
+        [x1_2,      2 * x0_x1, 0        ],
+        [x1_x2,     x0_x2,     x0_x1    ],
+        [x2_2,      0,         2 * x0_x2],
+        [0,         3 * x1_2,  0        ],
+        [0,         2 * x1_x2, x1_2     ],
+        [0,         x2_2,      2 * x1_x2],
+        [0,         0,         3 * x2_2 ],
+    ])
+    
+    return beta @ d_phi
+
+
+def compute_jac_det(x, beta, degree):
+    """Compute determinant of Jacobian for polynomial transform"""
+    
+    if degree == 2:
+        compute_jac = _jac_quad
+    elif degree == 3:
+        compute_jac = _jac_cubic
+    else:
+        raise NotImplementedError()
+    
+    dets = [np.linalg.det(compute_jac(x[i, :], beta)) for i in range(x.shape[0])]
+    
+    return np.array(dets).reshape(-1, 1)
