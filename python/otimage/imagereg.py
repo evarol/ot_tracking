@@ -11,6 +11,8 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 
+from otimage import deformations
+
 
 def _normalized_dist_mtx(pts_1, pts_2, metric):
     """Return distance matrix normalized by median."""
@@ -48,22 +50,54 @@ def _compute_gw(pts_1, pts_2, wts_1, wts_2):
     return gromov_wasserstein(c_1, c_2, p_1, p_2, 'square_loss', log=True)
 
 
-def _transport_regression_poly(pts_1, pts_2, transport_mtx, degree):
-    """Compute weighted polynomial regression using transport plan"""
-    
+# def _transport_regression_poly(pts_1, pts_2, transport_mtx, degree):
+#     """Compute weighted polynomial regression using transport plan"""
+   
+#     # Get pairs of points with values above threshold, and corresponding weights from P matrix
+#     idx_1, idx_2 = np.nonzero(transport_mtx)
+#     x = pts_1[idx_1]
+#     y = pts_2[idx_2]
+#     smp_wt = transport_mtx[idx_1, idx_2]
+
+#     # Use sklearn to minimize cost function
+#     model = Pipeline([
+#         ('poly', PolynomialFeatures(degree=degree, include_bias=True)),
+#         ('linear', LinearRegression(fit_intercept=False))
+#     ])
+#     model.fit(x, y, linear__sample_weight=smp_wt)
+   
+#     return model
+
+
+def _transport_regression_quadratic(pts_1, pts_2, transport_mtx):
+    """Compute weighted polynomial regression (degree=2) using transport plan"""
+   
     # Get pairs of points with values above threshold, and corresponding weights from P matrix
     idx_1, idx_2 = np.nonzero(transport_mtx)
     x = pts_1[idx_1]
     y = pts_2[idx_2]
     smp_wt = transport_mtx[idx_1, idx_2]
 
-    # Use sklearn to minimize cost function
-    model = Pipeline([
-        ('poly', PolynomialFeatures(degree=degree, include_bias=True)),
-        ('linear', LinearRegression(fit_intercept=False))
-    ])
-    model.fit(x, y, linear__sample_weight=smp_wt)
+    # Minimize cost function
+    model = deformations.Quadratic()
+    model.fit(x, y, smp_wt)
+  
+    return model
+
+
+def _transport_regression_cubic(pts_1, pts_2, transport_mtx):
+    """Compute weighted polynomial regression (degree=3) using transport plan"""
    
+    # Get pairs of points with values above threshold, and corresponding weights from P matrix
+    idx_1, idx_2 = np.nonzero(transport_mtx)
+    x = pts_1[idx_1]
+    y = pts_2[idx_2]
+    smp_wt = transport_mtx[idx_1, idx_2]
+
+    # Minimize cost function
+    model = deformations.Cubic()
+    model.fit(x, y, smp_wt)
+  
     return model
 
 
@@ -100,12 +134,17 @@ def _em_registration(pts_1, pts_2, wts_1, wts_2, trans_fn, reg_fn, n_iter):
 def ot_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
     """EM-based registration method using optimal transport plan."""
     
-    poly_reg = partial(_transport_regression_poly, degree=degree) 
+    if degree == 2:
+        reg_fn = _transport_regression_quadratic
+    elif degree == 3:
+        reg_fn = _transport_regression_cubic
+    else:
+        raise NotImplementedError
     
     return _em_registration(
         pts_1, pts_2, wts_1, wts_2, 
         trans_fn=_compute_ot, 
-        reg_fn=poly_reg,
+        reg_fn=reg_fn,
         n_iter=n_iter
     )
 
@@ -113,11 +152,16 @@ def ot_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
 def gw_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
     """EM-based registration method using Gromov-Wasserstein transport plan."""
     
-    poly_reg = partial(_transport_regression_poly, degree=degree) 
+    if degree == 2:
+        reg_fn = _transport_regression_quadratic
+    elif degree == 3:
+        reg_fn = _transport_regression_cubic
+    else:
+        raise NotImplementedError
     
     return _em_registration(
         pts_1, pts_2, wts_1, wts_2, 
         trans_fn=_compute_gw, 
-        reg_fn=poly_reg,
+        reg_fn=reg_fn,
         n_iter=n_iter
     )
