@@ -12,6 +12,8 @@ import numpy as np
 from scipy.io import loadmat
 from skimage.util import img_as_float, img_as_ubyte
 
+from otimage import imagerep
+
 
 class WormDataReader(AbstractContextManager):
     """Abstract base class for classes that read worm data.
@@ -161,39 +163,6 @@ class VivekReader(WormDataReader):
     def get_frame(self, time):
         return img_as_float(self._data[:, :, :, time])
     
-# Old Vivek reader
-#
-#class VivekReader(WormDataReader):
-#    """Reader for Vivek's data"""
-#    
-#    def __init__(self, fpath):
-#        
-#        self._file = h5py.File(fpath, 'r')
-#        self._dset = self._file.get('data')
-#        self._num_frames = self._dset.shape[0]
-#    
-#    def __exit__(self, exc_type, exc_value, traceback):
-#        self._file.close()
-#
-#    @property
-#    def t_start(self):
-#        return 0
-#
-#    @property
-#    def t_stop(self):
-#        return self._num_frames
-#
-#    @property
-#    def num_frames(self):
-#        return self._num_frames
-#   
-#    def get_frame(self, time):
-#
-#        frame_raw = self._dset[time, :, :, :]
-#        frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
-#
-#        return img_as_float(frame_flip)
-    
     
 class HillmanReader(WormDataReader):
     """Reader for Hillman lab data"""
@@ -253,3 +222,37 @@ class HillmanReader(WormDataReader):
         frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
 
         return img_as_float(frame_flip)
+
+
+class MPReader(AbstractContextManager):
+    """Reader for matching pursuit (MP) representations of worm data."""
+    
+    def __init__(self, fpath):
+        
+        data = loadmat(fpath)
+        
+        self._pts = data['means']
+        self._wts = data['weights']
+        self._cov = data['cov']
+        self._img_shape = data['img_shape']
+        self._t_start = data['t_start']
+        self._t_stop = data['t_stop']
+            
+    def __exit__(self, exc_type, exc_value, traceback):
+        return None
+
+    def get_frame(self, t):
+        return imagerep.ImageMP(
+            self._pts[t, :, :],
+            self._wts[t, :, 0],
+            self._cov,
+            self._img_shape
+        )
+
+    @property
+    def t_start(self):
+        return self._t_start
+
+    @property
+    def t_stop(self):
+        return self._t_stop
