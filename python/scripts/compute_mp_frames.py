@@ -18,8 +18,8 @@ def main():
     n_iter = 200
     cov = np.diag([8.0, 8.0, 1.5])
     
-    pts_1, wts_1, dbg_1 = imagerep.mp_gaussian(frame_1, cov, n_iter)
-    pts_2, wts_2, dbg_2 = imagerep.mp_gaussian(frame_2, cov, n_iter)
+    mp_1, dbg_1 = imagerep.mp_gaussian(frame_1, cov, n_iter)
+    mp_2, dbg_2 = imagerep.mp_gaussian(frame_2, cov, n_iter)
     
     with h5py.File(OUT_FPATH, 'w') as f:
         
@@ -28,15 +28,15 @@ def main():
         
         grp_1 = f.create_group('frame_1')
         grp_1.create_dataset('img', data=frame_1)
-        grp_1.create_dataset('pts', data=np.array(pts_1))
-        grp_1.create_dataset('wts', data=np.array(wts_1))
+        grp_1.create_dataset('pts', data=np.array(mp_1.pts))
+        grp_1.create_dataset('wts', data=np.array(mp_1.wts))
         grp_1.create_dataset('fl', data=dbg_1['fl'])
         grp_1.create_dataset('img_conv', data=dbg_1['img_conv'])
         
         grp_2 = f.create_group('frame_2')
         grp_2.create_dataset('img', data=frame_2)
-        grp_2.create_dataset('pts', data=np.array(pts_2))
-        grp_2.create_dataset('wts', data=np.array(wts_2))
+        grp_2.create_dataset('pts', data=np.array(mp_2.pts))
+        grp_2.create_dataset('wts', data=np.array(mp_2.wts))
         grp_2.create_dataset('fl', data=dbg_2['fl'])
         grp_2.create_dataset('img_conv', data=dbg_2['img_conv'])
 

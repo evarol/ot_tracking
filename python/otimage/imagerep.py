@@ -170,8 +170,7 @@ def mp_gaussian(img, cov, n_iter):
         n_iter (int): Number of iterations
         
     Returns:
-        list of numpy.ndarrays: Locations of components
-        list of floats: Weights for components
+        ImageMP: MP representation of image
         dict: Debug information:
             'fl' (numpy.ndarray): Gaussian filter used for algorithm
             'img_conv' (numpy.ndarray): Convolved residual
@@ -181,49 +180,17 @@ def mp_gaussian(img, cov, n_iter):
     fl = get_gaussian_filter(cov, (15, 15, 5))
 
     # Run greedy MP algorithm on image using filter
-    pts, weights, img_conv = greedy_mp(img, fl, n_iter)
+    pts, wts, img_conv = greedy_mp(img, fl, n_iter)
     
-    debug = {
-        'fl': fl,
-        'img_conv': img_conv
-    }
+    mp = ImageMP(pts, wts, cov, img.shape)
+    debug = {'fl': fl, 'img_conv': img_conv}
     
-    return pts, weights, debug
+    return mp, debug
 
 
-# TODO: Delete this
-def reconstruct_image(means, covs, weights, shape):
-    """Reconstruct 3D image from weighted combination of Gaussian components
-    
-    Args:
-        means (list of numpy.ndarrays): Means of components
-        covs (list of numpy.ndarrays): Covariances of components. If list
-            contains only one element, then this is used as covariance for all
-            components.
-        weights (list of floats): Weights for components
-        shape (tuple): Dimensions of image
-    
-    Returns:
-        numpy.ndarray: Image representing weighted combination of components
-    """
-    
-    if type(covs) is np.ndarray:
-        raise ValueError("Argument 'covs' must be iterable, not ndarray")
-    
-    if len(covs) == 1:
-        covs = covs * len(means)
-        
-    img_recon = np.zeros(shape)
-    for k in range(len(means)):
-    
-        cell = weights[k] * get_gaussian_filter(covs[k], (15, 15, 5))
-        img_recon += get_patch_image(cell, shape, means[k])
-    
-    return img_recon
-
-
-# TODO: Delete this
-def reconstruct_image_2(pts, wts, cov, shape):
+# TODO: Try to speed this up by 'expanding' img_recon to avoid re-allocating
+# massive arrays full of zeros
+def reconstruct_gaussian_image(pts, wts, cov, shape):
     """Reconstruct 3D image from weighted combination of Gaussian components"""
     
     # Only plot points that fall inside image
@@ -240,8 +207,6 @@ def reconstruct_image_2(pts, wts, cov, shape):
     return img_recon
 
 
-# TODO: Try to speed this up by 'expanding' img_recon to avoid re-allocating
-# massive arrays full of zeros
 def reconstruct_mp_image(mp):
     """Reconstruct 3D image from weighted combination of Gaussian components.
     
@@ -252,18 +217,7 @@ def reconstruct_mp_image(mp):
         np.ndarray: Reconstructed image
     """
     
-    # Only plot points that fall inside image
-    plot_idx = np.all((mp.pts >= 0) & (mp.pts < mp.img_shape), axis=1)
-    pts_plot = (mp.pts[plot_idx]).astype('int')
-    wts_plot = mp.wts[plot_idx]
-    
-    img_recon = np.zeros(mp.img_shape)
-    for k in range(pts_plot.shape[0]):
-    
-        cell = wts_plot[k] * get_gaussian_filter(mp.cov, (15, 15, 5))
-        img_recon += get_patch_image(cell, mp.img_shape, pts_plot[k, :])
-    
-    return img_recon
+    return reconstruct_gaussian_image(mp.pts, mp.wts, mp.cov, mp.img_shape)
 
 
 # TODO: Clean up code; bring interface more in line with mp_gaussian() function

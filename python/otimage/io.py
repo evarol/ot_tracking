@@ -1,4 +1,4 @@
-"""Classes for reading data from different formats"""
+"""Classes for reading and writing data from"""
 
 import os
 import re
@@ -9,7 +9,7 @@ from operator import itemgetter
 import h5py
 import tifffile
 import numpy as np
-from scipy.io import loadmat
+from scipy.io import loadmat, savemat
 from skimage.util import img_as_float, img_as_ubyte
 
 from otimage import imagerep
@@ -234,10 +234,14 @@ class MPReader(AbstractContextManager):
         self._pts = data['means']
         self._wts = data['weights']
         self._cov = data['cov']
-        self._img_shape = data['img_shape']
         self._t_start = data['t_start']
         self._t_stop = data['t_stop']
-            
+        self._img_shape = (
+            data['img_shape'][0, 0],
+            data['img_shape'][0, 1],
+            data['img_shape'][0, 2]
+        )
+
     def __exit__(self, exc_type, exc_value, traceback):
         return None
 
@@ -256,3 +260,32 @@ class MPReader(AbstractContextManager):
     @property
     def t_stop(self):
         return self._t_stop
+    
+    
+class MPWriter(AbstractContextManager):
+    """Writer for matching pursuit (MP) representations of worm data."""
+    
+    def __init__(self, fpath):
+        self._file = open(fpath, 'wb')
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._file.close()
+    
+    def write(self, mps, t_start, t_stop):
+        
+        cov = mps[0].cov,
+        img_shape = mps[0].img_shape
+        pts = np.array([x.pts for x in mps])
+        wts = np.array([x.wts for x in mps])
+        
+        mat_data = {
+            't_start': t_start,
+            't_stop': t_stop,
+            'cov': cov,
+            'img_shape': img_shape,
+            'means': pts,
+            'weights': wts,
+        }
+        savemat(self._file, mat_data)
+    
+    
