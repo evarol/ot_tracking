@@ -7,8 +7,7 @@ from multiprocessing import Pool
 import numpy as np
 from scipy.io import savemat
 
-from otimage import readers
-from otimage.imagerep import mp_gaussian
+from otimage import io, imagerep
 
 
 # Default number of processes used
@@ -20,10 +19,10 @@ DEFAULT_NUM_ITER = 500
 # Covariance values for each dimension
 
 # Zimmer
-#COV_DIAG = [5.0, 5.0, 5.0]
+COV_DIAG = [5.0, 5.0, 5.0]
 
 # Vivek
-COV_DIAG = [3.0, 3.0, 1.0]
+#COV_DIAG = [3.0, 3.0, 1.0]
 
 
 def positive_int(val_str):
@@ -87,7 +86,7 @@ def parse_args():
 
 
 def get_reader(fpath, dtype):
-    """Get readers.WormDataReader object of specific datatype for given path.
+    """Get io.WormDataReader object of specific datatype for given path.
 
     Args:
         fpath (str): Path to file containing data
@@ -95,16 +94,16 @@ def get_reader(fpath, dtype):
             or 'vivek')
 
     Returns:
-        readers.WormDataReader object for dataset
+        io.WormDataReader object for dataset
 
     """
 
     if dtype == 'synthetic':
-        return readers.SyntheticReader(fpath)
+        return io.SyntheticReader(fpath)
     elif dtype == 'zimmer':
-        return readers.ZimmerReader(fpath)
+        return io.ZimmerReader(fpath)
     elif dtype == 'vivek':
-        return readers.VivekReader(fpath)
+        return io.VivekReader(fpath)
     else:
         raise ValueError(f'Not valid dataset type: "dtype"')
 
@@ -188,9 +187,7 @@ def get_mps(rng, fpath, dtype, cov, n_iter):
         n_iter (int): Number of iterations to run algorithm for.
 
     Returns:
-        Ordered list of 2-tuples, one for each frame, where first element
-            contains means of components (n_iter * 3), and second contains
-            weights of components (n_iter * 1).
+        list of imagerep.ImageMP objects: MP representations for images
 
     """
 
@@ -198,10 +195,15 @@ def get_mps(rng, fpath, dtype, cov, n_iter):
 
     with get_reader(fpath, dtype) as reader:
 
-        frames = (reader.get_frame(t) for t in range(t_start, t_stop))
-        results = [mp_gaussian(f, cov, n_iter) for f in frames]
-
-    return results
+        mps = []
+        
+        for t in range(t_start, t_stop):
+            
+            img = reader.get_frame(t)
+            mp, _ = imagerep.mp_gaussian(img, cov, n_iter)
+            mps.append(mp)
+            
+    return mps 
 
 
 def main():
@@ -226,18 +228,14 @@ def main():
             n_iter=args.niter
         )
         results = p.map(_get_mps, chunks)
-
-    # Write means, weights, and covariance to MAT file
+    
+    # Compile chunk results into list of ImageMP objects
+    mps = [x for r in results for x in r]
+        
+    # Write MPs to MAT file
     print(f'Complete. Writing results to {args.output}...')
-    means = np.array([x[0] for r in results for x in r])
-    weights = np.array([x[1] for r in results for x in r])
-    mat_dict = {
-        'means': means,
-        'weights': weights,
-        'cov': cov
-    }
-    savemat(args.output, mat_dict)
-
+    with io.MPWriter(args.output) as writer:
+        writer.write(mps, t_start, t_stop)
 
 if __name__ == '__main__':
     main()

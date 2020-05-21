@@ -101,25 +101,26 @@ def _transport_regression_cubic(pts_1, pts_2, transport_mtx):
     return model
 
 
-def _em_registration(pts_1, pts_2, wts_1, wts_2, trans_fn, reg_fn, n_iter):
+# TODO: Consider passing model instead of reg_fn
+def _em_registration(mp_1, mp_2, trans_fn, reg_fn, n_iter):
     """EM-based registration method using optimal transport plan."""
     
     model = [None] * n_iter
     t_mtx = [None] * n_iter
     t_log = [None] * n_iter
     
-    pf_pts = [pts_1] + [None] * n_iter
+    pf_pts = [mp_1.pts] + [None] * n_iter
     
     for i in range(n_iter):
         
         # E-step: Compute OT plan between current points and target points
-        t_mtx[i], t_log[i] = trans_fn(pf_pts[i], pts_2, wts_1, wts_2)
+        t_mtx[i], t_log[i] = trans_fn(pf_pts[i], mp_2.pts, mp_1.wts, mp_2.wts)
         
         # M-step: Compute new mapping using transport plan
-        model[i] =  reg_fn(pts_1, pts_2, t_mtx[i])
+        model[i] =  reg_fn(mp_1.pts, mp_2.pts, t_mtx[i])
        
         # Update points 
-        pf_pts[i + 1] = model[i].predict(pts_1)
+        pf_pts[i + 1] = model[i].predict(mp_1.pts)
        
     debug = {
         'model': model,
@@ -131,7 +132,7 @@ def _em_registration(pts_1, pts_2, wts_1, wts_2, trans_fn, reg_fn, n_iter):
     return model[-1], debug
 
     
-def ot_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
+def ot_registration(mp_1, mp_2, degree, n_iter):
     """EM-based registration method using optimal transport plan."""
     
     if degree == 2:
@@ -142,14 +143,14 @@ def ot_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
         raise NotImplementedError
     
     return _em_registration(
-        pts_1, pts_2, wts_1, wts_2, 
+        mp_1, mp_2,
         trans_fn=_compute_ot, 
         reg_fn=reg_fn,
         n_iter=n_iter
     )
 
 
-def gw_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
+def gw_registration(mp_1, mp_2, degree, n_iter):
     """EM-based registration method using Gromov-Wasserstein transport plan."""
     
     if degree == 2:
@@ -160,7 +161,7 @@ def gw_registration(pts_1, pts_2, wts_1, wts_2, degree, n_iter):
         raise NotImplementedError
     
     return _em_registration(
-        pts_1, pts_2, wts_1, wts_2, 
+        mp_1, mp_2,
         trans_fn=_compute_gw, 
         reg_fn=reg_fn,
         n_iter=n_iter

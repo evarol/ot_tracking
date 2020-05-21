@@ -59,33 +59,42 @@ class ImageSliceViewer3D:
 class PushforwardViewer:
     """Viewer widget for transport plans"""
     
-    def __init__(self, pts_1, pts_2, wts_1, wts_2, 
-        cov, img_shape, q_mtx, figsize=(10, 10)):
+    #    def __init__(self, pts_1, pts_2, wts_1, wts_2, 
+    #        cov, img_shape, q_mtx, figsize=(10, 10)):
+    
+    def __init__(self, mp_1, mp_2, q_mtx, figsize=(10, 10)):
         
-        self.pts_1 = pts_1
-        self.pts_2 = pts_2
-        self.wts_1 = wts_1
-        self.wts_2 = wts_2
+        #self.pts_1 = pts_1
+        #self.pts_2 = pts_2
+        #self.wts_1 = wts_1
+        #self.wts_2 = wts_2
+        
+        self.mp_1 = mp_1
+        self.mp_2 = mp_2
+        
         self.figsize = figsize
         
-        self.rec_1 = imagerep.reconstruct_image(pts_1, [cov], wts_1, img_shape)
-        self.rec_2 = imagerep.reconstruct_image(pts_2, [cov], wts_2, img_shape)
+        #self.rec_1 = imagerep.reconstruct_gaussian_image(pts_1, wts_1, cov, img_shape)
+        #self.rec_2 = imagerep.reconstruct_gaussian_image(pts_2, wts_2, cov, img_shape)
         
-        self.pf_means = q_mtx @ pts_2
-        self.pf_modes = pts_2[np.argmax(q_mtx, 1)]
+        self.rec_1 = imagerep.reconstruct_mp_image(mp_1)
+        self.rec_2 = imagerep.reconstruct_mp_image(mp_2)
+        
+        self.pf_means = q_mtx @ mp_2.pts
+        self.pf_modes = mp_2.pts[np.argmax(q_mtx, 1)]
         self.q_mtx = q_mtx
         
         ipyw.interact(
             self.plot_pushforward, 
             idx=ipyw.IntSlider(
-                min=0, max=pts_1.shape[0], step=1, 
+                min=0, max=mp_1.pts.shape[0], step=1, 
                 continuous_update=False, description='MP:'
             )
         )
         
     def plot_pushforward(self, idx):
         
-        pt_1 = self.pts_1[idx, :]
+        pt_1 = self.mp_1.pts[idx, :]
         mean_pf = self.pf_means[idx, :]
         mode_pf = self.pf_modes[idx, :]
 
