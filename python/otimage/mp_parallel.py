@@ -3,30 +3,7 @@
 import functools
 from multiprocessing import Pool
 
-from otimage import io, imagerep
-
-
-def _get_reader(fpath, dtype):
-    """Get io.WormDataReader object of specific datatype for given path.
-
-    Args:
-        fpath (str): Path to file containing data
-        dtype (str): Type of data in file (either 'synthetic', 'zimmer',
-            or 'vivek')
-
-    Returns:
-        io.WormDataReader object for dataset
-
-    """
-
-    if dtype == 'synthetic':
-        return io.SyntheticReader(fpath)
-    elif dtype == 'zimmer':
-        return io.ZimmerReader(fpath)
-    elif dtype == 'vivek':
-        return io.VivekReader(fpath)
-    else:
-        raise ValueError(f'Not valid dataset type: "dtype"')
+from otimage import imagerep
 
 
 def _get_chunks(t_start, t_stop, n_chunks):
@@ -64,7 +41,7 @@ def _get_chunks(t_start, t_stop, n_chunks):
     return chunks
 
 
-def _get_mps(rng, fpath, dtype, cov, n_iter):
+def _get_mps(rng, reader_factory, cov, n_iter):
     """Run Gaussian MP algorithm on set of frames from data file.
 
     This function is meant to be executed by a single worker process. It reads
@@ -89,7 +66,7 @@ def _get_mps(rng, fpath, dtype, cov, n_iter):
 
     t_start, t_stop = rng
 
-    with _get_reader(fpath, dtype) as reader:
+    with reader_factory.get_reader() as reader:
 
         mps = []
         
@@ -102,7 +79,7 @@ def _get_mps(rng, fpath, dtype, cov, n_iter):
     return mps 
 
 
-def compute_mps(in_fpath, dtype, t_start, t_stop, cov, n_iter, n_procs):
+def compute_mps(reader_factory, t_start, t_stop, cov, n_iter, n_procs):
     
     # Split frames into chunks for each process
     chunks = _get_chunks(t_start, t_stop, n_procs)
@@ -111,8 +88,7 @@ def compute_mps(in_fpath, dtype, t_start, t_stop, cov, n_iter, n_procs):
     with Pool(processes=n_procs) as p:
         get_mps_chunk = functools.partial(
             _get_mps,
-            fpath=in_fpath,
-            dtype=dtype,
+            reader_factory=reader_factory,
             cov=cov, 
             n_iter=n_iter
         )

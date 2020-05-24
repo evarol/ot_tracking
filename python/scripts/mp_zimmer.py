@@ -29,8 +29,7 @@ def main():
     
     print('Launching processes to compute MP components...')
     mps = mp_parallel.compute_mps(
-        in_fpath=in_fpath, 
-        dtype='zimmer', 
+        reader_factory=io.ZimmerReaderFactory(in_fpath),
         t_start=t_start, 
         t_stop=t_stop, 
         cov=cov, 

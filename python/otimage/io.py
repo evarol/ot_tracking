@@ -2,7 +2,7 @@
 
 import os
 import re
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from contextlib import AbstractContextManager
 from operator import itemgetter
 
@@ -59,7 +59,7 @@ class WormDataReader(AbstractContextManager):
         
         pass
 
-    
+
 class SyntheticReader(WormDataReader):
     """Reader for synthetic data"""
     
@@ -102,7 +102,7 @@ class SyntheticReader(WormDataReader):
    
     def get_frame(self, time):
         return img_as_float(self._dset[:, :, :, time])
-
+    
 
 class ZimmerReader(WormDataReader):
     """Reader for data from Zimmer lab"""
@@ -134,8 +134,8 @@ class ZimmerReader(WormDataReader):
         frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
 
         return img_as_float(frame_flip)
-    
-    
+
+
 class VivekReader(WormDataReader):
     """Reader for Vivek's data"""
     
@@ -162,8 +162,8 @@ class VivekReader(WormDataReader):
    
     def get_frame(self, time):
         return img_as_float(self._data[:, :, :, time])
-    
-    
+
+
 class HillmanReader(WormDataReader):
     """Reader for Hillman lab data"""
     
@@ -223,6 +223,56 @@ class HillmanReader(WormDataReader):
 
         return img_as_float(frame_flip)
 
+
+class WormDataReaderFactory(ABC):
+    """Abstract base class for WormDataReader factory."""
+    
+    @abstractmethod
+    def get_reader(self):
+        """Return WormDataReader object for this object's filepath"""
+        
+        pass
+ 
+
+class SyntheticReaderFactory(WormDataReaderFactory):
+    """Create SyntheticReader objects for single filepath"""
+    
+    def __init__(self, fpath):
+        self._fpath = fpath
+        
+    def get_reader(self):
+        return SyntheticReader(self._fpath)
+
+    
+class ZimmerReaderFactory(WormDataReaderFactory):
+    """Create ZimmerReader objects for single filepath"""
+    
+    def __init__(self, fpath):
+        self._fpath = fpath
+        
+    def get_reader(self):
+        return ZimmerReader(self._fpath)
+    
+    
+class VivekReaderFactory(WormDataReaderFactory):
+    """Create VivekReader objects for single filepath"""
+    
+    def __init__(self, fpath):
+        self._fpath = fpath
+        
+    def get_reader(self):
+        return VivekReader(self._fpath)
+ 
+    
+class HillmanReaderFactory(WormDataReaderFactory):
+    """Create HillmanReader objects for single filepath"""
+    
+    def __init__(self, fpath):
+        self._fpath = fpath
+        
+    def get_reader(self):
+        return HillmanReader(self._fpath)
+ 
 
 class MPReader(AbstractContextManager):
     """Reader for matching pursuit (MP) representations of worm data."""
