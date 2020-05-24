@@ -1,5 +1,8 @@
 """Functions for creating low-dimensional image representations"""
 
+import functools
+from multiprocessing import Pool
+
 import numpy as np
 from scipy import ndimage
 from scipy.stats import multivariate_normal
@@ -8,6 +11,8 @@ from skimage.util import img_as_float, img_as_uint
 from skimage.measure import label
 from skimage.filters import threshold_otsu
 from skimage.segmentation import random_walker
+
+from otimage import io
 
 # TODO: Add docstrings
 # TODO: Replace 'assert' statements with tests that raise ValueErrors
@@ -218,88 +223,3 @@ def reconstruct_mp_image(mp):
     """
     
     return reconstruct_gaussian_image(mp.pts, mp.wts, mp.cov, mp.img_shape)
-
-
-# TODO: Clean up code; bring interface more in line with mp_gaussian() function
-def watershed_gaussian(img):
-    """Run watershed-based method for extracting Gaussian components from image
-   
-    Args:
-        img (numpy.ndarray): Image to extract components from
-    
-    Returns:
-        numpy.ndarray: Weights for components 
-        list of numpy.ndarrays: Component images
-    """
-    
-    # Compute threshold with Otsu's method
-    threshold_abs = threshold_otsu(img)
-    idx_below_th = img < threshold_abs
-    img_th = np.copy(img)
-    img_th[idx_below_th] = 0.0
-    
-    # Find local peaks
-    peaks = peak_local_max(img_th, min_distance=2)
-    n_peaks = peaks.shape[0]
-    
-    # Run random walker segmentation algorithm on image, using peaks as starting points
-    markers = np.zeros_like(img, dtype=np.int)
-    markers[idx_below_th] = -1
-    mark_vals = np.arange(n_peaks) + 1
-    markers[peaks[:, 0], peaks[:, 1], peaks[:, 2]] = mark_vals
-    img_seg = random_walker(img, markers)
-    
-    cell_indices = []
-    for c in range(n_peaks):
-        c_label = mark_vals[c]
-        if np.count_nonzero(np.equal(img_seg, c_label)) >= CELL_MIN_SIZE:
-            cell_indices.append(c)
-    n_cells = len(cell_indices)
-    
-    # Create grid
-    xg, yg, zg = np.mgrid[0:img.shape[0], 0:img.shape[1], 0:img.shape[2]]
-    grid = np.stack((xg, yg, zg), axis=-1)
-
-    # Compute mean and covariance for each cell
-    cell_means = []
-    cell_covs = []
-    for cell in range(n_cells):
-    
-        # Index of cell
-        c_idx = cell_indices[cell]
-    
-        # Boolean array representing 'footprint' of cell
-        c_bin = np.equal(img_seg, mark_vals[c_idx])
-    
-        # Get position values and pixel values  
-        pos_vals = grid[c_bin]
-        pix_vals = img[c_bin]
-            
-        # Compute mean and covariance (adding ridge to covariance for conditioning)
-        mean = np.average(pos_vals, axis=0, weights=pix_vals)
-        cov = np.cov(pos_vals, aweights=pix_vals, rowvar=False) + np.eye(3) * 1e-5
-        cell_means.append(mean)
-        cell_covs.append(cov)
-        
-    # Evaluate Gaussian for each cell on grid to get discrete basis function
-    basis_imgs = []
-    for cell in range(n_cells):
-    
-        mean = cell_means[cell]
-        cov = cell_covs[cell]
-    
-        # TODO: Either remove this from code or add it to other method so they can be accurately compared
-        # Basis function is truncated Gaussian with double covariance
-        rv = multivariate_normal(mean, cov * 2)
-        basis = rv.pdf(grid)
-        basis[basis < 1e-4] = 0
-    
-        basis_imgs.append(basis)
-        
-    # Get coefficients by solving least-squares system
-    basis_vecs = np.hstack([x.reshape((-1, 1)) for x in basis_imgs])
-    img_vec = img.reshape((-1, 1))
-    coeff, r_sum, _, _  = np.linalg.lstsq(basis_vecs, img_vec, rcond=None)
-
-    # TODO: Change this to return parameters of truncated Gaussians instead of whole images
-    return coeff, basis_imgs
