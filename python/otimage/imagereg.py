@@ -69,6 +69,22 @@ def _compute_gw(pts_1, pts_2, wts_1, wts_2):
 #     return model
 
 
+def _transport_regression_affine(pts_1, pts_2, transport_mtx):
+    """Compute weighted polynomial regression (degree=1) using transport plan"""
+   
+    # Get pairs of points with values above threshold, and corresponding weights from P matrix
+    idx_1, idx_2 = np.nonzero(transport_mtx)
+    x = pts_1[idx_1]
+    y = pts_2[idx_2]
+    smp_wt = transport_mtx[idx_1, idx_2]
+
+    # Minimize cost function
+    model = deformations.Affine()
+    model.fit(x, y, smp_wt)
+  
+    return model
+
+
 def _transport_regression_quadratic(pts_1, pts_2, transport_mtx):
     """Compute weighted polynomial regression (degree=2) using transport plan"""
    
@@ -135,7 +151,9 @@ def _em_registration(mp_1, mp_2, trans_fn, reg_fn, n_iter):
 def ot_registration(mp_1, mp_2, degree, n_iter):
     """EM-based registration method using optimal transport plan."""
     
-    if degree == 2:
+    if degree == 1:
+        reg_fn = _transport_regression_affine
+    elif degree == 2:
         reg_fn = _transport_regression_quadratic
     elif degree == 3:
         reg_fn = _transport_regression_cubic
@@ -153,7 +171,9 @@ def ot_registration(mp_1, mp_2, degree, n_iter):
 def gw_registration(mp_1, mp_2, degree, n_iter):
     """EM-based registration method using Gromov-Wasserstein transport plan."""
     
-    if degree == 2:
+    if degree == 1:
+        reg_fn = _transport_regression_affine
+    elif degree == 2:
         reg_fn = _transport_regression_quadratic
     elif degree == 3:
         reg_fn = _transport_regression_cubic

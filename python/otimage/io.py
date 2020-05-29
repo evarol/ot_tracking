@@ -323,7 +323,7 @@ class MPWriter(AbstractContextManager):
     
     def write(self, mps, t_start, t_stop):
         
-        cov = mps[0].cov,
+        cov = mps[0].cov
         img_shape = mps[0].img_shape
         pts = np.array([x.pts for x in mps])
         wts = np.array([x.wts for x in mps])

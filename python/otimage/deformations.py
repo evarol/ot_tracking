@@ -19,6 +19,31 @@ class DeformationModel(ABC):
     def predict(self, x):
         pass
     
+
+class Affine(DeformationModel):
+    
+    def __init__(self):
+        
+        self._model = Pipeline([
+            ('poly', PolynomialFeatures(degree=1, include_bias=True)),
+            ('linear', LinearRegression(fit_intercept=False))
+        ])
+        
+    @property
+    def beta(self):
+        
+        return self._model.named_steps['linear'].coef_
+        
+    def fit(self, x, y, weights):
+        
+        self._model.fit(x, y, linear__sample_weight=weights)
+        
+        return self
+        
+    def predict(self, x):
+        
+        return self._model.predict(x)
+    
     
 class Quadratic(DeformationModel):
     
@@ -139,7 +164,3 @@ class Cubic(DeformationModel):
         det_vals = [np.linalg.det(self._compute_jac(x_i)) for x_i in x]
         
         return np.array(det_vals).reshape(-1, 1)
-   
-    
-    
-    
