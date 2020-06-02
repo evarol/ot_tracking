@@ -44,6 +44,13 @@ class Affine(DeformationModel):
         
         return self._model.predict(x)
     
+    def det_jac(self, x):
+        
+        mtx = self.beta[:, 1:4]
+        det = np.linalg.det(mtx)
+        
+        return np.full((x.shape[0], 1), det)
+    
     
 class Quadratic(DeformationModel):
     
@@ -157,7 +164,7 @@ class Cubic(DeformationModel):
             [0,         0,         3 * x2_2 ],
         ])
     
-        return beta @ d_phi
+        return self.beta @ d_phi
 
     def det_jac(self, x):
         
