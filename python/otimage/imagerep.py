@@ -17,16 +17,19 @@ from otimage import io
 # TODO: Add docstrings
 # TODO: Replace 'assert' statements with tests that raise ValueErrors
 
+# TODO: Figure out how to set this dynamically
+FILTER_SIZE = (15, 15, 5)
+
 
 # TODO: Add docstring
 class ImageMP:
     
-    def __init__(self, pts, wts, cov, img_shape):
+    def __init__(self, pts, wts, cov, img_limits):
         
         self._pts = pts
         self._wts = wts
         self._cov = cov
-        self._img_shape = img_shape
+        self._img_limits = img_limits
         
     @property
     def pts(self):
@@ -41,8 +44,8 @@ class ImageMP:
         return self._cov
     
     @property
-    def img_shape(self):
-        return self._img_shape
+    def img_limits(self):
+        return self._img_limits
 
 
 def get_patch_image(patch, img_shape, ctr):
@@ -166,12 +169,23 @@ def greedy_mp(img, flt, n_iter):
     return points, weights, img_conv
 
 
-def mp_gaussian(img, cov, n_iter):
+def _get_cov_voxel(cov, units):
+    """Convert covariance matrix to voxel coordinates."""
+    
+    scl = 1 / units
+    scl_prod = scl.reshape(-1, 1) * scl.reshape(1, -1)
+    
+    return scl_prod * cov
+
+
+# TODO: Finish this and make sure it works
+def mp_gaussian(img, units, cov, n_iter):
     """Run greedy MP algorithm (Elad, 2014) with Gaussian filter on image
     
     Args:
         img (numpy.ndarray): Image to extract components from
-        cov (numpy.ndarray): Covariance of Gaussian filter
+        units (numpy.ndarray): Dimensions of voxel element (microns)
+        cov (numpy.ndarray): Covariance of Gaussian filter (microns)
         n_iter (int): Number of iterations
         
     Returns:
@@ -181,13 +195,22 @@ def mp_gaussian(img, cov, n_iter):
             'img_conv' (numpy.ndarray): Convolved residual
     """
     
+    # Convert covariance to voxel coordinates
+    cov_vx = _get_cov_voxel(cov, units)
+    
     # Create Gaussian filter with given covariance
-    fl = get_gaussian_filter(cov, (15, 15, 5))
+    fl = get_gaussian_filter(cov_vx, FILTER_SIZE)
 
     # Run greedy MP algorithm on image using filter
-    pts, wts, img_conv = greedy_mp(img, fl, n_iter)
+    pts_vx, wts, img_conv = greedy_mp(img, fl, n_iter)
     
-    mp = ImageMP(pts, wts, cov, img.shape)
+    # Convert points to original coordinates
+    pts = pts_vx * units
+    
+    # Compute image limits
+    img_limits = img.shape * units
+    
+    mp = ImageMP(pts, wts, cov, img_limits)
     debug = {'fl': fl, 'img_conv': img_conv}
     
     return mp, debug
@@ -212,7 +235,7 @@ def reconstruct_gaussian_image(pts, wts, cov, shape):
     return img_recon
 
 
-def reconstruct_mp_image(mp):
+def reconstruct_mp_image(mp, units):
     """Reconstruct 3D image from weighted combination of Gaussian components.
     
     Args:
@@ -222,4 +245,24 @@ def reconstruct_mp_image(mp):
         np.ndarray: Reconstructed image
     """
     
-    return reconstruct_gaussian_image(mp.pts, mp.wts, mp.cov, mp.img_shape)
+    # Only plot points that fall inside image
+    plot_idx = np.all((mp.pts >= 0) & (mp.pts < mp.img_limits), axis=1)
+    pts_plot = mp.pts[plot_idx]
+    wts_plot = mp.wts[plot_idx]
+    
+    # Convert points and covariance to voxel coordinates
+    pts_plot_vx = np.floor(pts_plot / units).astype('int')
+    cov_vx = _get_cov_voxel(mp.cov, units)
+    
+    img_shape = np.ceil(mp.img_limits / units).astype('int')
+    
+    print(img_shape)
+    
+    img_recon = np.zeros(img_shape)
+    
+    for k in range(pts_plot_vx.shape[0]):
+    
+        cell = wts_plot[k] * get_gaussian_filter(cov_vx, FILTER_SIZE)
+        img_recon += get_patch_image(cell, img_shape, pts_plot_vx[k, :])
+    
+    return img_recon

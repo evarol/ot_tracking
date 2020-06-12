@@ -44,6 +44,13 @@ class WormDataReader(AbstractContextManager):
 
         pass
     
+    @property
+    @abstractmethod
+    def units(self):
+        """Dimensions of voxel element, in microns"""
+        
+        pass
+    
     @abstractmethod
     def get_frame(self, time):
         """Get frame from dataset corresponding to time point.
@@ -60,6 +67,7 @@ class WormDataReader(AbstractContextManager):
         pass
 
 
+# TODO: Add units
 class SyntheticReader(WormDataReader):
     """Reader for synthetic data"""
     
@@ -127,6 +135,10 @@ class ZimmerReader(WormDataReader):
     @property
     def num_frames(self):
         return self._num_frames
+    
+    @property
+    def units(self):
+        return np.array([0.325, 0.325, 1.0])
    
     def get_frame(self, time):
 
