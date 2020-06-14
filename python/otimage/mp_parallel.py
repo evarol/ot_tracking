@@ -73,7 +73,7 @@ def _get_mps(rng, reader_factory, cov, n_iter):
         for t in range(t_start, t_stop):
             
             img = reader.get_frame(t)
-            mp, _ = imagerep.mp_gaussian(img, cov, n_iter)
+            mp, _ = imagerep.mp_gaussian(img, reader.units, cov, n_iter)
             mps.append(mp)
             
     return mps 

@@ -67,12 +67,13 @@ class WormDataReader(AbstractContextManager):
         pass
 
 
-# TODO: Add units
+# TODO: Rethink format used to store synthetic data
+# TODO: Add get_mp_frame() method to load MP data
 class SyntheticReader(WormDataReader):
     """Reader for synthetic data"""
     
     def __init__(self, fpath):
-
+        
         self._file = h5py.File(fpath, 'r')
         self._dset = self._file.get('video')
         self._num_frames = self._dset.shape[3]
@@ -80,6 +81,9 @@ class SyntheticReader(WormDataReader):
         self._means = self._file.get('means')[:, :]
         self._cov = self._file.get('cov')[:, :]
         self._weights = self._file.get('weights')[:, :]
+        
+        # TODO: Eventually load units from file
+        self._units = np.array([1.0, 1.0, 1.0])
     
     def __exit__(self, exc_type, exc_value, traceback):
         self._file.close()
@@ -93,6 +97,14 @@ class SyntheticReader(WormDataReader):
         return self._num_frames
     
     @property
+    def num_frames(self):
+        return self._num_frames
+    
+    @property
+    def units(self):
+        return self._units
+    
+    @property
     def means(self):
         return self._means
     
@@ -104,11 +116,11 @@ class SyntheticReader(WormDataReader):
     def weights(self):
         return self._weights
 
-    @property
-    def num_frames(self):
-        return self._num_frames
-   
     def get_frame(self, time):
+        
+        if time not in range(self.t_start, self.t_stop):
+            raise ValueError('Invalid time value')
+
         return img_as_float(self._dset[:, :, :, time])
     
 
@@ -120,6 +132,10 @@ class ZimmerReader(WormDataReader):
         self._file = h5py.File(fpath, 'r')
         self._dset = self._file.get('mCherry')
         self._num_frames = self._dset.shape[0]
+        
+        # Units in Zimmer files are not correct. Once this is fixed, we should
+        # load units from file instead of using hard-coded value
+        self._units = np.array([0.325, 0.325, 1.0])
     
     def __exit__(self, exc_type, exc_value, traceback):
         self._file.close()
@@ -138,9 +154,12 @@ class ZimmerReader(WormDataReader):
     
     @property
     def units(self):
-        return np.array([0.325, 0.325, 1.0])
-   
+        return self._units
+    
     def get_frame(self, time):
+        
+        if time not in range(self.t_start, self.t_stop):
+            raise ValueError('Invalid time value')
 
         frame_raw = self._dset[time, 0, :, :, :]
         frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
@@ -153,9 +172,12 @@ class VivekReader(WormDataReader):
     
     def __init__(self, fpath):
         
-        file_vars = loadmat(fpath, variable_names=['data'])
+        file_vars = loadmat(fpath, variable_names=['data', 'id_data'])
         self._data = file_vars['data']
+        self._id_data = file_vars['id_data']
+        
         self._num_frames = self._data.shape[3]
+        self._units = self._id_data['info'][0][0][0][0][1].flatten()
     
     def __exit__(self, exc_type, exc_value, traceback):
         return None
@@ -171,8 +193,16 @@ class VivekReader(WormDataReader):
     @property
     def num_frames(self):
         return self._num_frames
-   
+    
+    @property
+    def units(self):
+        return self._units
+    
     def get_frame(self, time):
+        
+        if time not in range(self.t_start, self.t_stop):
+            raise ValueError('Invalid time value')
+
         return img_as_float(self._data[:, :, :, time])
 
 
@@ -209,6 +239,9 @@ class HillmanReader(WormDataReader):
         self._t_stop = t_stop
         self._num_frames = t_stop - t_start
         
+        # TODO: Replace this with real numbers once I get them
+        self._units = np.array([1.0, 1.0, 1.0])
+        
     def __exit__(self, exc_type, exc_value, traceback):
         return None
 
@@ -223,13 +256,17 @@ class HillmanReader(WormDataReader):
     @property
     def num_frames(self):
         return self._num_frames
-   
+    
+    @property
+    def units(self):
+        return self._units
+    
     def get_frame(self, time):
         
-        if time not in range(self._t_start, self._t_stop):
+        if time not in range(self.t_start, self.t_stop):
             raise ValueError('Invalid time value')
 
-        fpath = self._fpaths[time - self._t_start]
+        fpath = self._fpaths[time - self.t_start]
         frame_raw = tifffile.imread(fpath)
         frame_flip = np.moveaxis(frame_raw, [0, 1, 2], [2, 1, 0])
 
@@ -244,7 +281,7 @@ class WormDataReaderFactory(ABC):
         """Return WormDataReader object for this object's filepath"""
         
         pass
- 
+
 
 class SyntheticReaderFactory(WormDataReaderFactory):
     """Create SyntheticReader objects for single filepath"""
@@ -274,8 +311,8 @@ class VivekReaderFactory(WormDataReaderFactory):
         
     def get_reader(self):
         return VivekReader(self._fpath)
- 
-    
+
+
 class HillmanReaderFactory(WormDataReaderFactory):
     """Create HillmanReader objects for single filepath"""
     
@@ -284,35 +321,83 @@ class HillmanReaderFactory(WormDataReaderFactory):
         
     def get_reader(self):
         return HillmanReader(self._fpath)
- 
+
+
+class MPWriter(AbstractContextManager):
+    """Writer for matching pursuit (MP) representations of worm data."""
+    
+    def __init__(self, fpath):
+        self._file = h5py.File(fpath, 'w')
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._file.close()
+    
+    def write(self, mps, t_start, t_stop):
+        """Write MP frames to file.
+        
+        Args:
+            mps (list of ImageMP objects): MP representations of video frames
+            t_start (int): Time index of first frame
+            t_stop (int): Time index one greater than last frame
+            
+        """
+        
+        # Assume covariance and limits are same for all MPs
+        cov = mps[0].cov
+        img_limits = mps[0].img_limits
+        
+        pts = np.array([x.pts for x in mps])
+        wts = np.array([x.wts for x in mps])
+        
+        self._file.create_dataset('pts', data=pts)
+        self._file.create_dataset('wts', data=wts)
+        
+        self._file.attrs['cov'] = cov
+        self._file.attrs['img_limits'] = img_limits
+        self._file.attrs['t_start'] = t_start
+        self._file.attrs['t_stop'] = t_stop
+
 
 class MPReader(AbstractContextManager):
     """Reader for matching pursuit (MP) representations of worm data."""
     
     def __init__(self, fpath):
         
-        data = loadmat(fpath)
+        self._file = h5py.File(fpath, 'r')
+        self._pts = self._file.get('pts')
+        self._wts = self._file.get('wts')
         
-        self._pts = data['means']
-        self._wts = data['weights']
-        self._cov = data['cov']
-        self._t_start = data['t_start']
-        self._t_stop = data['t_stop']
-        self._img_shape = (
-            data['img_shape'][0, 0],
-            data['img_shape'][0, 1],
-            data['img_shape'][0, 2]
-        )
-
+        self._cov = self._file.attrs['cov']
+        self._img_limits = self._file.attrs['img_limits']
+        self._t_start = self._file.attrs['t_start']
+        self._t_stop = self._file.attrs['t_stop']
+        
     def __exit__(self, exc_type, exc_value, traceback):
-        return None
+        self._file.close()
 
     def get_frame(self, t):
+        """Load MP representation of frame.
+        
+        Args:
+            t (int): Time step to load frame for
+        
+        Returns:
+            imagerep.ImageMP: MP representation for frame at time t
+            
+        Raises: 
+            ValueError: If file doesn't contain frame for time t
+        
+        """
+
+        if t not in range(self.t_start, self.t_stop):
+            raise ValueError('Invalid time value')
+            
+        idx = t - self.t_start
         return imagerep.ImageMP(
-            self._pts[t, :, :],
-            self._wts[t, :, 0],
+            self._pts[idx, :, :],
+            self._wts[idx, :],
             self._cov,
-            self._img_shape
+            self._img_limits
         )
 
     @property
@@ -322,32 +407,3 @@ class MPReader(AbstractContextManager):
     @property
     def t_stop(self):
         return self._t_stop
-    
-    
-class MPWriter(AbstractContextManager):
-    """Writer for matching pursuit (MP) representations of worm data."""
-    
-    def __init__(self, fpath):
-        self._file = open(fpath, 'wb')
-        
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._file.close()
-    
-    def write(self, mps, t_start, t_stop):
-        
-        cov = mps[0].cov
-        img_shape = mps[0].img_shape
-        pts = np.array([x.pts for x in mps])
-        wts = np.array([x.wts for x in mps])
-        
-        mat_data = {
-            't_start': t_start,
-            't_stop': t_stop,
-            'cov': cov,
-            'img_shape': img_shape,
-            'means': pts,
-            'weights': wts,
-        }
-        savemat(self._file, mat_data)
-    
-    

@@ -9,7 +9,7 @@ from otimage import io, mp_parallel
 in_fpath = '/home/mn2822/Desktop/WormOT/data/zimmer/raw/mCherry_v00065-00115.hdf5'
 
 # Output file
-out_fpath = '/home/mn2822/Desktop/WormOT/data/zimmer/mp_components/mp_0000_0050.mat'
+out_fpath = '/home/mn2822/Desktop/WormOT/data/zimmer/mp_components/mp_0000_0050.h5'
 
 # Range of frames to compute MPs for
 t_start = 0
@@ -22,7 +22,7 @@ n_procs = 12
 n_iter = 500
 
 # Covariance of Gaussian filter (this needs to be determined manually for each dataset)
-cov = np.diag([5.0, 5.0, 5.0])
+cov = np.diag([1.6, 1.6, 1.6])
 
 
 def main():
