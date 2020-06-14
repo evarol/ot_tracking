@@ -125,7 +125,7 @@ def greedy_mp(img, flt, n_iter):
     img_conv = ndimage.filters.convolve(img, flt)
     
     points = np.zeros((n_iter, 3), dtype=np.int)
-    weights = np.zeros((n_iter, 1))
+    weights = np.zeros(n_iter)
 
     for i in range(n_iter):
         
