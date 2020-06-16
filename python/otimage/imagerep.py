@@ -225,13 +225,20 @@ def mp_gaussian(img, units, cov, n_iter):
     return mp, debug
 
 
-# TODO: Try to speed this up by 'expanding' img_recon to avoid re-allocating
-# massive arrays full of zeros
 def reconstruct_gaussian_image(pts, wts, cov, shape):
     """Reconstruct 3D image from weighted combination of Gaussian components
     
     Note: 'pts' and 'cov' are both in VOXEL coordinates for this function,
     not microns.
+    
+    Args:
+        pts (N * 3 numpy.ndarray): Locations of MP components (voxel coordinates)
+        wts (Length N numpy.ndarray): Weights of MP components
+        cov (3 * 3 numpy.ndarray): Covariance matrix of Gaussian filter 
+        shape (Length 3 tuple): Shape of image array
+    
+    Returns:
+        numpy.ndarray: Reconstructed image
     
     """
     
@@ -240,10 +247,11 @@ def reconstruct_gaussian_image(pts, wts, cov, shape):
     pts_plot = (pts[plot_idx]).astype('int')
     wts_plot = wts[plot_idx]
     
+    # Add Gaussian cell footprints to get reconstructed image
     img_recon = np.zeros(shape)
     for k in range(pts_plot.shape[0]):
     
-        cell = wts_plot[k] * _get_gaussian_filter(cov, (15, 15, 5))
+        cell = wts_plot[k] * _get_gaussian_filter(cov, FILTER_SIZE)
         img_recon += _get_patch_image(cell, shape, pts_plot[k, :])
     
     return img_recon
