@@ -26,10 +26,11 @@ class ImageSliceViewer3D:
     
     """
     
-    def __init__(self, volume, figsize=(8,8), cmap='plasma'):
+    def __init__(self, volume, figsize=(8,8), cmap='plasma', origin='upper'):
         self.volume = volume
         self.figsize = figsize
         self.cmap = cmap
+        self.origin = origin
         self.v = [np.min(volume), np.max(volume)]
         
         # Call to select slice plane
@@ -53,7 +54,7 @@ class ImageSliceViewer3D:
         # Plot slice for the given plane and slice
         self.fig = plt.figure(figsize=self.figsize)
         plt.imshow(self.vol[:,:,z], cmap=plt.get_cmap(self.cmap), 
-            vmin=self.v[0], vmax=self.v[1])
+            vmin=self.v[0], vmax=self.v[1], origin=self.origin)
         
         
 class PushforwardViewer:
