@@ -9,7 +9,7 @@ from otimage import io, mp_parallel
 in_fpath = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/gmm_data_3d.h5'
 
 # Output file
-out_fpath = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/syn_data_mp_test.mat'
+out_fpath = '/home/mn2822/Desktop/WormOT/data/synthetic/fast_3d/syn_data_mp_test.h5'
 
 # Range of frames to compute MPs for
 t_start = 0
