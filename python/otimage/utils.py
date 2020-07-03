@@ -94,9 +94,9 @@ def plot_maxproj(img, ax=None, animated=False):
     """
     
     if ax is None:
-        return plt.imshow(np.max(img, 2).T, origin='lower', animated=animated)
-    else:
-        return ax.imshow(np.max(img, 2).T, origin='lower', animated=animated)
+        ax = plt.axes()
+    
+    return ax.imshow(np.max(img, 2).T, origin='lower', animated=animated)
 
     
 def plot_img_units(img, units, ax=None, animated=False):
@@ -110,17 +110,15 @@ def plot_img_units(img, units, ax=None, animated=False):
         animated (bool): Optional. True if plot is meant to be part of
             animation, otherwise False.
     """
+     
+    if ax is None:
+        ax = plt.axes()
     
     xmax = img.shape[0] * units[0]
     ymax = img.shape[1] * units[1]
     extent = (0, xmax, 0, ymax)
-    
-    if ax is None:
-        return plt.imshow(
-            img.T, origin='lower', extent=extent, animated=animated)
-    else:
-        return ax.imshow(
-            img.T, origin='lower', extent=extent, animated=animated)
+
+    return ax.imshow(img.T, origin='lower', extent=extent, animated=animated)
 
 
 def plot_maxproj_units(img, units, ax=None, animated=False):
@@ -138,82 +136,30 @@ def plot_maxproj_units(img, units, ax=None, animated=False):
     maxproj = np.max(img, 2)
     
     return plot_img_units(maxproj, units, ax=ax, animated=animated)
-    
 
-# def _jac_quad(x, beta):
-#     """Compute Jacobian matrix for quadratic transform."""
+
+def plot_maxproj_zoom(img, units, extent, ax=None, animated=False):
+    """Plot max-projection of 3D image.
     
-#     x0 = x[0]
-#     x1 = x[1]
-#     x2 = x[2]
-    
-#     d_phi = np.array([
-#         [0,         0,         0        ],
-#         [1,         0,         0        ],
-#         [0,         1,         0        ], 
-#         [0,         0,         1        ],
-#         [2 * x0,    0,         0        ],
-#         [x1,        x0,        0        ],
-#         [x2,        0,         x0       ],
-#         [0,         2 * x1,    0        ],
-#         [0,         x2,        x1       ],
-#         [0,         0,         2 * x2   ],
-#     ])
+    Args:
+        img (numpy.ndarray): Image to plot
+        units (numpy.ndarray): Units of grid (microns)
+        extent (4-tuple): Region to plot: (xmin, xmax, ymin, ymax)
+        ax (matplotlib.axes.Axes): Optional. Axes to plot on (default is to
+            use current axes).
+        animated (bool): Optional. True if plot is meant to be part of
+            animation, otherwise False.
+    """
         
-#     return beta @ d_phi
+    if ax is None:
+        ax = plt.axes()
+        
+    xmin_vx = int(extent[0] / units[0])
+    xmax_vx = int(extent[1] / units[0])
+    ymin_vx = int(extent[2] / units[1])
+    ymax_vx = int(extent[3] / units[1])
+    
+    img_zoom = img[xmin_vx:xmax_vx, ymin_vx:ymax_vx, :]
+    maxproj = np.max(img_zoom, 2)
 
-
-# def _jac_cubic(x, beta):
-#     """Compute Jacobian matrix for cubic transform."""
-    
-#     x0 = x[0]
-#     x1 = x[1]
-#     x2 = x[2]
-    
-#     x0_2 = x0 ** 2
-#     x1_2 = x1 ** 2
-#     x2_2 = x2 ** 2
-    
-#     x0_x1 = x0 * x1
-#     x1_x2 = x1 * x2
-#     x0_x2 = x0 * x2
-    
-#     d_phi = np.array([
-#         [0,         0,         0        ],
-#         [1,         0,         0        ],
-#         [0,         1,         0        ], 
-#         [0,         0,         1        ],
-#         [2 * x0,    0,         0        ],
-#         [x1,        x0,        0        ],
-#         [x2,        0,         x0       ],
-#         [0,         2 * x1,    0        ],
-#         [0,         x2,        x1       ],
-#         [0,         0,         2 * x2   ],
-#         [3 * x0_2,  0,         0        ],
-#         [2 * x0_x1, x0_2,      0        ],
-#         [2 * x0_x2, 0,         x0_2     ],
-#         [x1_2,      2 * x0_x1, 0        ],
-#         [x1_x2,     x0_x2,     x0_x1    ],
-#         [x2_2,      0,         2 * x0_x2],
-#         [0,         3 * x1_2,  0        ],
-#         [0,         2 * x1_x2, x1_2     ],
-#         [0,         x2_2,      2 * x1_x2],
-#         [0,         0,         3 * x2_2 ],
-#     ])
-    
-#     return beta @ d_phi
-
-
-# def compute_jac_det(x, beta, degree):
-#     """Compute determinant of Jacobian for polynomial transform"""
-    
-#     if degree == 2:
-#         compute_jac = _jac_quad
-#     elif degree == 3:
-#         compute_jac = _jac_cubic
-#     else:
-#         raise NotImplementedError()
-    
-#     dets = [np.linalg.det(compute_jac(x[i, :], beta)) for i in range(x.shape[0])]
-    
-#     return np.array(dets).reshape(-1, 1)
+    return ax.imshow(maxproj.T, origin='lower', extent=extent, animated=animated)

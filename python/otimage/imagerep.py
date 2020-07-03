@@ -167,7 +167,7 @@ def _get_gaussian_filter(cov_vx, rads):
     xg, yg, zg = np.mgrid[-rx:rx+1, -ry:ry+1, -rz:rz+1]
     flt_grid = np.stack((xg, yg, zg), axis=-1)
 
-    # Gaussian filter (normalized to have un  it L2 norm)
+    # Gaussian filter (normalized to have unit L2 norm)
     flt_nn = multivariate_normal.pdf(flt_grid, mean=np.array([0, 0, 0]), cov=cov_vx)
     flt = flt_nn / np.sqrt(np.sum(flt_nn ** 2))
     
@@ -220,7 +220,7 @@ def mp_gaussian(img, units, cov, n_iter):
     img_limits = img.shape * units
     
     mp = ImageMP(pts, wts, cov, img_limits)
-    debug = {'fl': fl, 'img_conv': img_conv}
+    debug = {'cov_vx': cov_vx, 'fl': fl, 'img_conv': img_conv}
     
     return mp, debug
 
