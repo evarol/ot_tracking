@@ -193,7 +193,10 @@ def _get_cov_voxel(cov, units):
 
 
 def mp_gaussian(img, units, cov, n_iter):
-    """Run greedy MP algorithm (Elad, 2014) with Gaussian filter on image
+    """Run greedy MP algorithm (Elad, 2014) with Gaussian filter on image.
+    
+    Before running MP algorithm, we apply a threshold (computed using Otsu's
+    algorithm) to the image.
     
     Args:
         img (numpy.ndarray): Image to extract components from
@@ -208,12 +211,17 @@ def mp_gaussian(img, units, cov, n_iter):
             'img_conv' (numpy.ndarray): Convolved residual
     """
     
+    # Apply Otsu threshold to deep copy of image
+    threshold = threshold_otsu(img)
+    img_th = np.copy(img)
+    img_th[img_th < threshold] = 0.0
+    
     # Create Gaussian filter with given covariance
     cov_vx = _get_cov_voxel(cov, units)
     fl = _get_gaussian_filter(cov_vx, FILTER_SIZE)
 
     # Run greedy MP algorithm on image using filter
-    pts_vx, wts, img_conv = greedy_mp(img, fl, n_iter)
+    pts_vx, wts, img_conv = greedy_mp(img_th, fl, n_iter)
     
     # Convert points and image limits to original coordinates
     pts = pts_vx * units

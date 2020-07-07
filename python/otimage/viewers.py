@@ -93,12 +93,15 @@ class WormSliceViewer:
         if plane == 'XY':
             self.img_view = self.img
             self.extent_view = self.extent_xy
+            
         elif plane == 'XZ':
             self.img_view = np.transpose(self.img, [0, 2, 1])
             self.extent_view = self.extent_xz
+            
         elif plane == 'YZ':
             self.img_view = np.transpose(self.img, [1, 2, 0])
             self.extent_view = self.extent_yz
+            
         else:
             raise ValueError('Invalid plane')
         
@@ -116,6 +119,95 @@ class WormSliceViewer:
         self.fig = plt.figure(figsize=self.figsize)
         plt.imshow(
             self.img_view[:, :, idx].T, 
+            extent=self.extent_view,
+            vmin=self.img_min, 
+            vmax=self.img_max, 
+            origin='lower'
+        )
+    
+    
+class WormCompareViewer:
+    
+    def __init__(self, img_1, img_2, units, figsize=(8,8)):
+        
+        if img_1.shape != img_2.shape:
+            raise ValueError('Input images not same size')
+        
+        self.img_1 = img_1
+        self.img_2 = img_2
+        self.figsize = figsize
+        self.img_min = min(np.min(img_1), np.min(img_2))
+        self.img_max = max(np.max(img_1), np.max(img_2))
+        self.img_shape = img_1.shape
+        
+        # Image transposed so that first two indices correspond to slicing plane
+        self.img_view_1 = None
+        self.img_view_2 = None
+        self.extent_view = None
+        
+        # Extent dimensions for all three viewing planes
+        xmax = self.img_shape[0] * units[0]
+        ymax = self.img_shape[1] * units[1]
+        zmax = self.img_shape[2] * units[2]
+        self.extent_xy = (0, xmax, 0, ymax)
+        self.extent_xz = (0, xmax, 0, zmax)
+        self.extent_yz = (0, ymax, 0, zmax)
+        
+        # Widget for selecting plane
+        plane_widget = ipyw.RadioButtons(
+            options=['XY','XZ', 'YZ'], 
+            value='XY', 
+            description='plane:', 
+            disabled=False,
+            style={'description_width': 'initial'}
+        )
+        ipyw.interact(self.view_selection, plane=plane_widget)
+        
+    def view_selection(self, plane):
+        
+        if plane == 'XY':
+            self.img_view_1 = self.img_1
+            self.img_view_2 = self.img_2
+            self.extent_view = self.extent_xy
+            
+        elif plane == 'XZ':
+            self.img_view_1 = np.transpose(self.img_1, [0, 2, 1])
+            self.img_view_2 = np.transpose(self.img_2, [0, 2, 1])
+            self.extent_view = self.extent_xz
+            
+        elif plane == 'YZ':
+            self.img_view_1 = np.transpose(self.img_1, [1, 2, 0])
+            self.img_view_2 = np.transpose(self.img_2, [1, 2, 0])
+            self.extent_view = self.extent_yz
+            
+        else:
+            raise ValueError('Invalid plane')
+        
+        # Widget for selecting slice
+        z_max = self.img_view_1.shape[2] - 1
+        slice_widget = ipyw.IntSlider(
+            min=0, max=z_max, step=1, 
+            continuous_update=False, 
+            description='slice:'
+        )
+        ipyw.interact(self.plot_slice, idx=slice_widget)
+        
+    def plot_slice(self, idx):
+        
+        self.fig = plt.figure(figsize=self.figsize)
+        
+        plt.subplot(121)
+        plt.imshow(
+            self.img_view_1[:, :, idx].T, 
+            extent=self.extent_view,
+            vmin=self.img_min, 
+            vmax=self.img_max, 
+            origin='lower'
+        )
+        
+        plt.subplot(122)
+        plt.imshow(
+            self.img_view_2[:, :, idx].T, 
             extent=self.extent_view,
             vmin=self.img_min, 
             vmax=self.img_max, 

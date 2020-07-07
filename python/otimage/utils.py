@@ -94,7 +94,7 @@ def plot_maxproj(img, ax=None, animated=False):
     """
     
     if ax is None:
-        ax = plt.axes()
+        ax = plt.gca()
     
     return ax.imshow(np.max(img, 2).T, origin='lower', animated=animated)
 
@@ -112,7 +112,7 @@ def plot_img_units(img, units, ax=None, animated=False):
     """
      
     if ax is None:
-        ax = plt.axes()
+        ax = plt.gca()
     
     xmax = img.shape[0] * units[0]
     ymax = img.shape[1] * units[1]
@@ -152,7 +152,7 @@ def plot_maxproj_zoom(img, units, extent, ax=None, animated=False):
     """
         
     if ax is None:
-        ax = plt.axes()
+        ax = plt.gca()
         
     xmin_vx = int(extent[0] / units[0])
     xmax_vx = int(extent[1] / units[0])

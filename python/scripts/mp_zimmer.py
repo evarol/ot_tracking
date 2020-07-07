@@ -19,10 +19,10 @@ t_stop = 50
 n_procs = 12
 
 # Number of iterations of MP algorithm to run for each frame
-n_iter = 500
+n_iter = 400
 
 # Covariance of Gaussian filter (this needs to be determined manually for each dataset)
-cov = np.diag([1.6, 1.6, 1.6])
+cov = np.diag([2.6, 2.6, 1.5])
 
 
 def main():
